@@ -56,8 +56,7 @@ public class Test extends Agent {
             //System.out.println("Python script exited with code: " + exitCode);
 
         } catch (Exception e) {
-            e.printStackTrace();
-        }
+            e.printStackTrace();}
         ArrayList<Action> allActions = gs.getAllAvailableActions();
         int nActions = allActions.size();
         Action toExecute = allActions.get(rnd.nextInt(nActions));
