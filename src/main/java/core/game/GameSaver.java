@@ -17,10 +17,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 
-class GameSaver {
+public class GameSaver {
 
 
-    static JSONObject gameToJSON(GameState gs, Board gameBoard, long seed){
+    public static JSONObject gameToJSON(GameState gs, Board gameBoard, long seed){
         // JSON
         JSONObject game = new JSONObject();
 

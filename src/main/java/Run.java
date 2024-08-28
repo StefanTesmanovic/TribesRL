@@ -71,7 +71,8 @@ class Run {
         OEP,
         EMCTS,
         PORTFOLIO_MCTS,
-        TEST
+        TEST,
+        RL
     }
 
     public static double K_INIT_MULT = 0.5;
@@ -104,6 +105,7 @@ class Run {
             case "pMCTS": return Run.PlayerType.PORTFOLIO_MCTS;
             case "EMCTS": return Run.PlayerType.EMCTS;
             case "Test": return PlayerType.TEST;
+            case "RLAgent" : return PlayerType.RL;
         }
         throw new Exception("Error: unrecognized Player Type: " + arg);
     }
@@ -145,6 +147,7 @@ class Run {
             case DONOTHING: return new DoNothingAgent(agentSeed);
             case RANDOM: return new RandomAgent(agentSeed);
             case TEST: return new Test(agentSeed);
+            case RL: return new RLAgent(agentSeed);
             case SIMPLE: return new SimpleAgent(agentSeed);
             case OSLA:
                 OSLAParams oslaParams = new OSLAParams();
