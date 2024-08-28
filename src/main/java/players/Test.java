@@ -2,10 +2,17 @@ package players;
 
 import core.actions.Action;
 import core.game.GameState;
+import org.tensorflow.op.Ops;
+import org.tensorflow.op.core.Placeholder;
+import org.tensorflow.types.TFloat32;
 import utils.ElapsedCpuTimer;
 
 import java.util.ArrayList;
 import java.util.Random;
+
+import org.tensorflow.Tensor;
+import org.tensorflow.Session;
+import org.tensorflow.Graph;
 
 import java.io.*;
 
@@ -21,7 +28,7 @@ public class Test extends Agent {
 
     @Override
     public Action act(GameState gs, ElapsedCpuTimer ect)
-    {
+    {   /**
         try {
             // Create a ProcessBuilder instance and specify the Python script
             ProcessBuilder pb = new ProcessBuilder("python3", "test.py");
@@ -43,20 +50,25 @@ public class Test extends Agent {
             reader.close(); // Close the reader
 
             // Capture the error stream
-            /**
             BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
             String errorLine;
             while ((errorLine = errorReader.readLine()) != null) {
                 System.err.println("Python error: " + errorLine);
             }
-            errorReader.close();**/
+            errorReader.close();
 
             // Wait for the process to complete and check the exit code
             //int exitCode = process.waitFor();
             //System.out.println("Python script exited with code: " + exitCode);
 
         } catch (Exception e) {
-            e.printStackTrace();}
+            e.printStackTrace();}**/
+
+        Graph graph = new Graph();
+        Ops tf = Ops.create(graph);
+//        try (Graph graph = new Graph()) {
+//            // Build and execute a simple TensorFlow graph here
+//        }
         ArrayList<Action> allActions = gs.getAllAvailableActions();
         int nActions = allActions.size();
         Action toExecute = allActions.get(rnd.nextInt(nActions));

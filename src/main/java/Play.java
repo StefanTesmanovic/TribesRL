@@ -35,7 +35,7 @@ public class Play {
     private static long AGENT_SEED = -1;
     private static long GAME_SEED = -1;
 
-    public static void main(String[] args) {
+    public static void start() {
 
         try {
             JSONObject config = new IO().readJSON("play.json");
