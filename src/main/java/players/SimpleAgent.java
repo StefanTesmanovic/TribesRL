@@ -62,6 +62,7 @@ public class SimpleAgent extends Agent {
         HashMap<Integer, ArrayList<Action>> desiredActions = new HashMap<>();
 
         for (Action a : allActions ) {
+
             int actionScore = evalAction(gs, a);
 
             ArrayList<Action> listActions;

@@ -104,7 +104,7 @@ public class AttackCommand implements ActionCommand {
      * @param gs - current game state
      * @return Pair, where first element is the attack power (attackResult) and second is defence power (defenceResult)
      */
-    private Pair<Integer, Integer> getAttackResults(Attack action, GameState gs) {
+    public Pair<Integer, Integer> getAttackResults(Attack action, GameState gs) {
         Unit attacker = (Unit) gs.getActor(action.getUnitId());
         Unit target = (Unit) gs.getActor(action.getTargetId());
         Vector2d targetPos = target.getPosition();
