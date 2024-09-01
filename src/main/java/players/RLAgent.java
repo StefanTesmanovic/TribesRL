@@ -17,13 +17,17 @@ import org.tensorflow.Operand;
 import org.tensorflow.Session;
 import org.tensorflow.Tensor;
 import org.tensorflow.ndarray.FloatNdArray;
+import org.tensorflow.ndarray.NdArray;
 import org.tensorflow.ndarray.NdArrays;
 import org.tensorflow.ndarray.Shape;
 import org.tensorflow.ndarray.buffer.FloatDataBuffer;
 import org.tensorflow.op.Ops;
 import org.tensorflow.op.core.Placeholder;
+import org.tensorflow.op.core.ReduceSum;
 import org.tensorflow.op.core.Variable;
 import org.tensorflow.types.TFloat32;
+import org.tensorflow.types.TInt32;
+import org.tensorflow.types.TString;
 import utils.ElapsedCpuTimer;
 import utils.Pair;
 import utils.Vector2d;
@@ -31,13 +35,17 @@ import utils.Vector2d;
 
 import java.util.*;
 
+import static org.tensorflow.op.core.ReduceSum.keepDims;
+
 
 public class RLAgent extends Agent{
+    public static Operand<TFloat32> logits, probabilities;
     public static Operand<TFloat32> actionProbabilities;
     public static Graph graph;
-    public static Session session;
+    //public static Tensor mrtviTenzor;
     public static Ops tf;
     static Placeholder<TFloat32> stateInput;
+    public static Session session;
     private Random m_rnd;
 
     public RLAgent(long seed)
@@ -45,7 +53,6 @@ public class RLAgent extends Agent{
         super(seed);
         m_rnd = new Random(seed);
     }
-
 
     @Override
     public Action act(GameState gs, ElapsedCpuTimer ect) {
@@ -106,22 +113,29 @@ public class RLAgent extends Agent{
         for (int unID : units) {
             float[] input = Input(unID, gs);
             int rand = m_rnd.nextInt(7 * 7 + 3);//plus 3 for upgrade, recover and disband
-            /**Tensor mrtviTenzor = tf.reshape(
+            TFloat32 mrtviTenzor = TFloat32.tensorOf(Shape.of(1, input.length), data -> {
+                for (int i = 0; i < input.length; i++) {
+                    data.setFloat((float) input[i], 0, i);
+                }
+            });
+            /**mrtviTenzor = tf.reshape(
                     tf.dtypes.cast(tf.constant(input), TFloat32.class),
                     tf.array(-1L, input.length)
-            ).asTensor();
-            List<TFloat32> actionProbs = (List<TFloat32>) session.runner()
+            ).asTensor();**/
+            TFloat32 actionProbs = (TFloat32) session.runner()
                     .fetch(actionProbabilities)
                     .feed(stateInput.asOutput(), mrtviTenzor)
                     .run()
                     .get(0);
-            System.out.println(actionProbs);**/
-            action = outputAction(unID, gs, rand);
-            System.out.println(action);
-            while(action == null) action = outputAction(unID, gs, m_rnd.nextInt(7 * 7 + 3));
-            return action;
+            //NdArray arr = NdArrays.ofFloats(Shape.of(1,51));
+            Integer[] output = sortedArgs(actionProbs);
+            //System.out.println(actionProbs.size());//actionProbs.copyTo(arr));//.getFloat(0,2));
+            for(int k = 0; k < 52; k++){
+                action = outputAction(unID, gs, k);
+                if(action != null) return action;//{ System.out.println(gs.getTick() + ":" +gs.getActiveTribeID()+ ":" +action); return action;}
+            }
+            if(action == null)return new EndTurn();
         }
-
         return action;
     }
     //friendly Hp, friendly attack, enemy HP, enemy attack enemy--> HP is defence succes if attacked attack is how succesful would our attack be
@@ -175,7 +189,6 @@ public class RLAgent extends Agent{
         return new double[8];
     }
     private Action outputAction(int uId, GameState gs, int ouptutNeuron){
-        System.out.println(ouptutNeuron + "\n");
         if(ouptutNeuron == 49){
             LinkedList<Action> list = (new UpgradeFactory()).computeActionVariants(gs.getActor(uId), gs);
             if(!list.isEmpty())
@@ -222,7 +235,6 @@ public class RLAgent extends Agent{
                         return null;
                     }else
                         return null;
-            // jos capture za grad i selo i za kretanje
             if(board.getTerrainAt(x,y) == Types.TERRAIN.CITY){
                 Capture a = new Capture(uId);
                 a.setCaptureType(Types.TERRAIN.CITY);
@@ -238,19 +250,36 @@ public class RLAgent extends Agent{
             }
 
             Move a = new Move(uId);
-            x = uX + 1;
-            y = uY;
-            System.out.println("ovde sam pokusavam da hodam" + x + " " + y + "," + uX + " " + uY);
             a.setDestination(new Vector2d(x, y));
-            if(a.isFeasible(gs)) return a;
+            if(a.isFeasible(gs))return a;
             return null;
         }
+    }
+
+    public static Integer[] sortedArgs(TFloat32 arr) {
+        int size = (int)arr.size();  // Assuming 1D NdArray
+
+
+        // Create an array of indices
+        Integer[] indices = new Integer[size];
+        for (int i = 0; i < size; i++) {
+            indices[i] = i;
+        }
+
+        // Sort indices based on the values in the array, in descending order
+        Arrays.sort(indices, new Comparator<Integer>() {
+            @Override
+            public int compare(Integer i1, Integer i2) {
+                return Float.compare(arr.getFloat(0,i2), arr.getFloat(0, i1));
+            }
+        });
+
+        return indices;
     }
 
     public static void initNN(){
         int numActions = 51, input = 7*7*8;
         graph = new Graph();
-        session = new Session(graph);
         tf = Ops.create(graph);
         // Define the input placeholder (state input)
         stateInput = tf.placeholder(TFloat32.class, Placeholder.shape(Shape.of(-1, input)));
@@ -273,10 +302,12 @@ public class RLAgent extends Agent{
         // Output layer: 100 -> Number of actions
         Variable<TFloat32> weights4 = tf.variable(tf.random.truncatedNormal(tf.constant(new long[]{100, numActions}), TFloat32.class));
         Variable<TFloat32> biases4 = tf.variable(tf.zeros(tf.constant(new long[]{numActions}), TFloat32.class));
-        Operand<TFloat32> logits = tf.math.add(tf.linalg.matMul(layer3, weights4), biases4);
+        logits = tf.math.add(tf.linalg.matMul(layer3, weights4), biases4);
 
         // Apply softmax to get the action probabilities
-        actionProbabilities = tf.nn.softmax(logits);
+        actionProbabilities = tf.math.div(logits,tf.reduceSum(logits, tf.array(1), keepDims(true)));//tf.nn.softmax(logits);
+
+        session = new Session(graph);
     }
 
     @Override

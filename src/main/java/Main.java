@@ -8,7 +8,6 @@ public class Main {
 
     public static void main(String[] args){
         RLAgent.initNN();
-        Session session = RLAgent.session;
         JSONObject conf = new IO().readJSON("training.json");
         if(conf.getBoolean("training")){
             for(int i = 0; i < 1; i++)
