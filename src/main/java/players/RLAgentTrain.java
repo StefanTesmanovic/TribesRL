@@ -12,29 +12,29 @@ import core.actors.City;
 import core.actors.units.Unit;
 import core.game.Board;
 import core.game.GameState;
-import org.tensorflow.*;
+import org.tensorflow.Graph;
+import org.tensorflow.Operand;
+import org.tensorflow.Session;
 import org.tensorflow.framework.optimizers.Adam;
 import org.tensorflow.framework.optimizers.Optimizer;
-import org.tensorflow.ndarray.FloatNdArray;
-import org.tensorflow.ndarray.NdArray;
 import org.tensorflow.ndarray.NdArrays;
 import org.tensorflow.ndarray.Shape;
-import org.tensorflow.ndarray.buffer.FloatDataBuffer;
 import org.tensorflow.op.Op;
 import org.tensorflow.op.Ops;
-import org.tensorflow.op.core.*;
+import org.tensorflow.op.core.Gradients;
+import org.tensorflow.op.core.Placeholder;
+import org.tensorflow.op.core.ReduceMin;
+import org.tensorflow.op.core.Variable;
 import org.tensorflow.types.TFloat32;
-import org.tensorflow.types.TInt32;
-import org.tensorflow.types.TString;
 import utils.ElapsedCpuTimer;
 import utils.Pair;
 import utils.Vector2d;
 
-
 import java.util.*;
 
 import static org.tensorflow.op.core.ReduceSum.keepDims;
-public class RLAgent extends Agent{
+
+public class RLAgentTrain extends Agent{
     public static Operand<TFloat32> logits, probabilities;
     public static Operand<TFloat32> actionProbabilities;
     public static Graph graph;
@@ -53,7 +53,7 @@ public class RLAgent extends Agent{
 
     public static HashMap<Integer, ArrayList<Rewards>> rewards = new HashMap<>();
 
-    public RLAgent(long seed)
+    public RLAgentTrain(long seed)
     {
         super(seed);
         m_rnd = new Random(seed);
@@ -229,11 +229,6 @@ public class RLAgent extends Agent{
             int x = ouptutNeuron/7+uX-3, y = ouptutNeuron%7+uX-3;
             if(x < 0 || y < 0 || x >= gs.getBoard().getSize() || y >= gs.getBoard().getSize()) return null;
             if(board.getResourceAt(x,y) == Types.RESOURCE.RUINS && (new Examine(uId)).isFeasible(gs)) return new Examine(uId);
-            if(board.getTerrainAt(x,y) == Types.TERRAIN.VILLAGE){
-                Capture a = new Capture(uId);
-                a.setCaptureType(Types.TERRAIN.VILLAGE);
-                if(a.isFeasible(gs)) return a;
-            }
             Unit chosenUnit = board.getUnitAt(x,y);
             if(chosenUnit != null)
                 if(chosenUnit.getTribeId() != thisUnit.getTribeId())
@@ -265,7 +260,12 @@ public class RLAgent extends Agent{
                 if(a.isFeasible(gs)) return a;
                 return null;
             }
-
+            if(board.getTerrainAt(x,y) == Types.TERRAIN.VILLAGE){
+                Capture a = new Capture(uId);
+                a.setCaptureType(Types.TERRAIN.VILLAGE);
+                if(a.isFeasible(gs)) return a;
+                return null;
+            }
 
             Move a = new Move(uId);
             a.setDestination(new Vector2d(x, y));

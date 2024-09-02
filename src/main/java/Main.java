@@ -2,6 +2,7 @@ import org.json.JSONObject;
 import org.tensorflow.Session;
 import org.tensorflow.types.TFloat32;
 import players.RLAgent;
+import players.RLAgentTrain;
 import players.Rewards;
 import utils.file.IO;
 
@@ -13,6 +14,7 @@ public class Main {
 
     public static void main(String[] args){
         RLAgent.initNN();
+        RLAgentTrain.initNN();
         JSONObject conf = new IO().readJSON("training.json");
         if(conf.getBoolean("training")){
             for(int i = 0; i < 50; i++) {

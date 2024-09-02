@@ -98,8 +98,8 @@ public class SimpleAgent extends Agent {
             }
         }
 
-//        System.out.println(bestActionScore + " " + chosenAction);
-
+        System.out.println(bestActionScore + " " + chosenAction);
+        //if(chosenAction.toString().toLowerCase().contains("find")) System.out.println(chosenAction);
         return chosenAction;
     }
 
@@ -563,7 +563,7 @@ public class SimpleAgent extends Agent {
                 }
                 if (t == Types.TERRAIN.VILLAGE) { // High incentive to move to village to capture as it is easier than capturing an actual city
                     if (Vector2d.chebychevDistance(dest, new Vector2d(x, y)) < Vector2d.chebychevDistance(thisUnit.getPosition(), new Vector2d(x, y))) {
-                        return 5;
+                        return 10;
                     }
                 }
             }
