@@ -22,6 +22,11 @@
         </dependency>
         <dependency>
             <groupId>org.tensorflow</groupId>
+            <artifactId>tensorflow-framework</artifactId>
+            <version>1.0.0-rc.1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.tensorflow</groupId>
             <artifactId>tensorflow-core-api</artifactId>
             <version>1.0.0-rc.1</version> <!-- Make sure to use the appropriate version -->
         </dependency>

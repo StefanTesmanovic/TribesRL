@@ -12,19 +12,17 @@ import core.actors.City;
 import core.actors.units.Unit;
 import core.game.Board;
 import core.game.GameState;
-import org.tensorflow.Graph;
-import org.tensorflow.Operand;
-import org.tensorflow.Session;
-import org.tensorflow.Tensor;
+import org.tensorflow.*;
+import org.tensorflow.framework.optimizers.Adam;
+import org.tensorflow.framework.optimizers.Optimizer;
 import org.tensorflow.ndarray.FloatNdArray;
 import org.tensorflow.ndarray.NdArray;
 import org.tensorflow.ndarray.NdArrays;
 import org.tensorflow.ndarray.Shape;
 import org.tensorflow.ndarray.buffer.FloatDataBuffer;
+import org.tensorflow.op.Op;
 import org.tensorflow.op.Ops;
-import org.tensorflow.op.core.Placeholder;
-import org.tensorflow.op.core.ReduceSum;
-import org.tensorflow.op.core.Variable;
+import org.tensorflow.op.core.*;
 import org.tensorflow.types.TFloat32;
 import org.tensorflow.types.TInt32;
 import org.tensorflow.types.TString;
@@ -36,17 +34,24 @@ import utils.Vector2d;
 import java.util.*;
 
 import static org.tensorflow.op.core.ReduceSum.keepDims;
-
-
 public class RLAgent extends Agent{
     public static Operand<TFloat32> logits, probabilities;
     public static Operand<TFloat32> actionProbabilities;
     public static Graph graph;
     //public static Tensor mrtviTenzor;
     public static Ops tf;
-    static Placeholder<TFloat32> stateInput;
+    public static Placeholder<TFloat32> stateInput;
+
+    public static int ActionSpaceSize = 52;
     public static Session session;
     private Random m_rnd;
+    public static Gradients gradients;
+    public static Optimizer optimizer;
+    public static Placeholder<TFloat32> actions;
+    public static Placeholder<TFloat32> rew;
+    public static Op minimize;
+
+    public static HashMap<Integer, ArrayList<Rewards>> rewards = new HashMap<>();
 
     public RLAgent(long seed)
     {
@@ -112,7 +117,7 @@ public class RLAgent extends Agent{
         if(units == null) return action;
         for (int unID : units) {
             float[] input = Input(unID, gs);
-            int rand = m_rnd.nextInt(7 * 7 + 3);//plus 3 for upgrade, recover and disband
+            //int rand = m_rnd.nextInt(7 * 7 + 3);//plus 3 for upgrade, recover and disband
             TFloat32 mrtviTenzor = TFloat32.tensorOf(Shape.of(1, input.length), data -> {
                 for (int i = 0; i < input.length; i++) {
                     data.setFloat((float) input[i], 0, i);
@@ -128,13 +133,26 @@ public class RLAgent extends Agent{
                     .run()
                     .get(0);
             //NdArray arr = NdArrays.ofFloats(Shape.of(1,51));
-            Integer[] output = sortedArgs(actionProbs);
-            //System.out.println(actionProbs.size());//actionProbs.copyTo(arr));//.getFloat(0,2));
-            for(int k = 0; k < 52; k++){
-                action = outputAction(unID, gs, k);
-                if(action != null) return action;//{ System.out.println(gs.getTick() + ":" +gs.getActiveTribeID()+ ":" +action); return action;}
+            Integer[] outputIndexes = sortedArgs(actionProbs);
+            /**float a = 0;
+            for(int i = 0; i < actionProbs.size(); i++) {
+                System.out.print(actionProbs.getFloat(0, i));
+                a += actionProbs.getFloat(0,i);
             }
-            if(action == null)return new EndTurn();
+            System.out.println("\n" + a);**/
+            //System.out.println(actionProbs.size());//actionProbs.copyTo(arr));//.getFloat(0,2));
+
+            for(int k = 0; k < 52; k++){
+                action = outputAction(unID, gs, outputIndexes[k]);
+                if(action != null){
+                    if(!rewards.containsKey(unID))
+                        rewards.put(unID, new ArrayList<Rewards>());
+                    ArrayList<Rewards> tmp = rewards.get(unID);
+                    tmp.add(new Rewards(outputIndexes[k], (new SimpleAgent(seed)).evalAction(gs, action), mrtviTenzor));
+                    return action;
+                }//{ System.out.println(gs.getTick() + ":" +gs.getActiveTribeID()+ ":" +action); return action;}
+            }
+            return new EndTurn();
         }
         return action;
     }
@@ -278,11 +296,14 @@ public class RLAgent extends Agent{
     }
 
     public static void initNN(){
-        int numActions = 51, input = 7*7*8;
+        int numActions = ActionSpaceSize, input = 7*7*8;
         graph = new Graph();
         tf = Ops.create(graph);
         // Define the input placeholder (state input)
         stateInput = tf.placeholder(TFloat32.class, Placeholder.shape(Shape.of(-1, input)));
+        actions = tf.placeholder(TFloat32.class, Placeholder.shape(Shape.of(-1, numActions)));
+        rew = tf.placeholder(TFloat32.class, Placeholder.shape(Shape.of(-1)));
+
 
         // First hidden layer: input -> 300 neurons
         Variable<TFloat32> weights1 = tf.variable(tf.random.truncatedNormal(tf.constant(new long[]{input, 300}), TFloat32.class));
@@ -303,9 +324,15 @@ public class RLAgent extends Agent{
         Variable<TFloat32> weights4 = tf.variable(tf.random.truncatedNormal(tf.constant(new long[]{100, numActions}), TFloat32.class));
         Variable<TFloat32> biases4 = tf.variable(tf.zeros(tf.constant(new long[]{numActions}), TFloat32.class));
         logits = tf.math.add(tf.linalg.matMul(layer3, weights4), biases4);
-
+        logits = tf.math.add(logits, tf.reduceMin(logits, tf.constant(1), ReduceMin.keepDims(false)));
         // Apply softmax to get the action probabilities
-        actionProbabilities = tf.math.div(logits,tf.reduceSum(logits, tf.array(1), keepDims(true)));//tf.nn.softmax(logits);
+        actionProbabilities = tf.math.div(logits,tf.reduceSum(logits, tf.array(1), keepDims(false)));//tf.nn.softmax(logits);
+
+        Operand<TFloat32> logProbs = tf.math.log(tf.reduceSum(tf.math.mul(actionProbabilities, actions), tf.constant(1)));
+        Operand<TFloat32> loss = tf.math.neg(tf.math.mul(logProbs, rew)); // Multiply by rewards
+
+        Optimizer optimizer = new Adam(graph, 0.001f);//Adam.createAdamMinimize(tf, 0.001f)//.create(tf, 0.001f);
+        minimize = optimizer.minimize(loss);
 
         session = new Session(graph);
     }
