@@ -27,6 +27,28 @@
         </dependency>
         <dependency>
             <groupId>org.tensorflow</groupId>
+            <artifactId>proto</artifactId>
+            <version>1.15.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.google.protobuf</groupId>
+            <artifactId>protobuf-java</artifactId>
+            <version>3.19.4</version>
+        </dependency>
+        <!--
+        <dependency>
+            <groupId>org.tensorflow</groupId>
+            <artifactId>tensorflow</artifactId>
+            <version>1.15.0</version>
+        </dependency>-->
+        <dependency>
+            <groupId>org.tensorflow</groupId>
+            <artifactId>tensorflow-core-generator</artifactId>
+            <version>1.0.0-rc.1</version>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>org.tensorflow</groupId>
             <artifactId>tensorflow-core-api</artifactId>
             <version>1.0.0-rc.1</version> <!-- Make sure to use the appropriate version -->
         </dependency>
@@ -43,6 +65,18 @@
             <version>20240303</version>
             <scope>system</scope>
             <systemPath>${project.basedir}/lib/json.jar</systemPath>
+        </dependency>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>RELEASE</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>RELEASE</version>
+            <scope>compile</scope>
         </dependency>
     </dependencies>
 </project>

@@ -41,6 +41,19 @@ public class RLAgentTrain extends Agent{
     //public static Tensor mrtviTenzor;
     public static Ops tf;
     public static Placeholder<TFloat32> stateInput;
+    public static Operand<TFloat32> copying;
+
+    public static Variable<TFloat32> weights1;
+    public static Variable<TFloat32> biases1;
+
+    public static Variable<TFloat32> weights2;
+    public static Variable<TFloat32> biases2;
+
+    public static Variable<TFloat32> weights3;
+    public static Variable<TFloat32> biases3;
+
+    public static Variable<TFloat32> weights4;
+    public static Variable<TFloat32> biases4;
 
     public static int ActionSpaceSize = 52;
     public static Session session;
@@ -229,6 +242,12 @@ public class RLAgentTrain extends Agent{
             int x = ouptutNeuron/7+uX-3, y = ouptutNeuron%7+uX-3;
             if(x < 0 || y < 0 || x >= gs.getBoard().getSize() || y >= gs.getBoard().getSize()) return null;
             if(board.getResourceAt(x,y) == Types.RESOURCE.RUINS && (new Examine(uId)).isFeasible(gs)) return new Examine(uId);
+
+            if(board.getTerrainAt(x,y) == Types.TERRAIN.VILLAGE){
+                Capture a = new Capture(uId);
+                a.setCaptureType(Types.TERRAIN.VILLAGE);
+                if(a.isFeasible(gs)) return a;
+            }
             Unit chosenUnit = board.getUnitAt(x,y);
             if(chosenUnit != null)
                 if(chosenUnit.getTribeId() != thisUnit.getTribeId())
@@ -257,12 +276,6 @@ public class RLAgentTrain extends Agent{
                 Capture a = new Capture(uId);
                 a.setCaptureType(Types.TERRAIN.CITY);
                 a.setTargetCity(board.getCityIdAt(x,y));
-                if(a.isFeasible(gs)) return a;
-                return null;
-            }
-            if(board.getTerrainAt(x,y) == Types.TERRAIN.VILLAGE){
-                Capture a = new Capture(uId);
-                a.setCaptureType(Types.TERRAIN.VILLAGE);
                 if(a.isFeasible(gs)) return a;
                 return null;
             }
@@ -306,23 +319,23 @@ public class RLAgentTrain extends Agent{
 
 
         // First hidden layer: input -> 300 neurons
-        Variable<TFloat32> weights1 = tf.variable(tf.random.truncatedNormal(tf.constant(new long[]{input, 300}), TFloat32.class));
-        Variable<TFloat32> biases1 = tf.variable(tf.zeros(tf.constant(new long[]{300}), TFloat32.class));
+        weights1 = tf.variable(tf.random.truncatedNormal(tf.constant(new long[]{input, 300}), TFloat32.class));
+        biases1 = tf.variable(tf.zeros(tf.constant(new long[]{300}), TFloat32.class));
         Operand<TFloat32> layer1 = tf.nn.relu(tf.math.add(tf.linalg.matMul(stateInput, weights1), biases1));
 
         // Second hidden layer: 300 -> 150 neurons
-        Variable<TFloat32> weights2 = tf.variable(tf.random.truncatedNormal(tf.constant(new long[]{300, 150}), TFloat32.class));
-        Variable<TFloat32> biases2 = tf.variable(tf.zeros(tf.constant(new long[]{150}), TFloat32.class));
+        weights2 = tf.variable(tf.random.truncatedNormal(tf.constant(new long[]{300, 150}), TFloat32.class));
+        biases2 = tf.variable(tf.zeros(tf.constant(new long[]{150}), TFloat32.class));
         Operand<TFloat32> layer2 = tf.nn.relu(tf.math.add(tf.linalg.matMul(layer1, weights2), biases2));
 
         // Third hidden layer: 150 -> 100 neurons
-        Variable<TFloat32> weights3 = tf.variable(tf.random.truncatedNormal(tf.constant(new long[]{150, 100}), TFloat32.class));
-        Variable<TFloat32> biases3 = tf.variable(tf.zeros(tf.constant(new long[]{100}), TFloat32.class));
+        weights3 = tf.variable(tf.random.truncatedNormal(tf.constant(new long[]{150, 100}), TFloat32.class));
+        biases3 = tf.variable(tf.zeros(tf.constant(new long[]{100}), TFloat32.class));
         Operand<TFloat32> layer3 = tf.nn.relu(tf.math.add(tf.linalg.matMul(layer2, weights3), biases3));
 
         // Output layer: 100 -> Number of actions
-        Variable<TFloat32> weights4 = tf.variable(tf.random.truncatedNormal(tf.constant(new long[]{100, numActions}), TFloat32.class));
-        Variable<TFloat32> biases4 = tf.variable(tf.zeros(tf.constant(new long[]{numActions}), TFloat32.class));
+        weights4 = tf.variable(tf.random.truncatedNormal(tf.constant(new long[]{100, numActions}), TFloat32.class));
+        biases4 = tf.variable(tf.zeros(tf.constant(new long[]{numActions}), TFloat32.class));
         logits = tf.math.add(tf.linalg.matMul(layer3, weights4), biases4);
         logits = tf.math.add(logits, tf.reduceMin(logits, tf.constant(1), ReduceMin.keepDims(false)));
         // Apply softmax to get the action probabilities

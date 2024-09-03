@@ -20,7 +20,7 @@ import static core.Constants.*;
 import static core.Types.ACTION.*;
 
 public class Game {
-
+    public static int[] score = new int[2];
     // State of the game (objects, ticks, etc).
     private GameState gs;
 
@@ -74,7 +74,6 @@ public class Game {
         this.seed = seed;
         this.rnd = new Random(seed);
         this.gs = new GameState(rnd, gameMode);
-
         this.gs.init(filename);
         initGameStructures(players, this.gs.getTribes().length);
         updateAssignedGameStates();
@@ -459,6 +458,7 @@ public class Game {
             System.out.print(" #" + rank + ": Tribe " + tribes[tribeId].getType() + " (" + agentName + "): " + results[tribeId] + ", " + sc[tribeId] + " points;");
             System.out.println(" #tech: " + tr.getNumTechsResearched() + ", #cities: " + tr.getNumCities() + ", production: " + tr.getProduction());
             System.out.println("Diplomacy - #wars: " + tribes[tribeId].getnWarsDeclared() + ", #stars sent: " + tribes[tribeId].getnStarsSent());
+            score[tribeId]+= rank == 1 ? rank:0;
             rank++;
         }
     }

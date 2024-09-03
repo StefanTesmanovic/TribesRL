@@ -1,23 +1,32 @@
+import core.game.Game;
 import org.json.JSONObject;
 import org.tensorflow.Session;
+import org.tensorflow.SessionFunction;
+import org.tensorflow.Signature;
 import org.tensorflow.types.TFloat32;
+import org.tensorflow.SavedModelBundle;
+import org.tensorflow.SavedModelBundle.*;
 import players.RLAgent;
 import players.RLAgentTrain;
 import players.Rewards;
 import utils.file.IO;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 
 public class Main {
 
-
-    public static void main(String[] args){
+    public static int[] score = new int[2];
+    public static void main(String[] args) throws IOException {
         RLAgent.initNN();
         RLAgentTrain.initNN();
         JSONObject conf = new IO().readJSON("training.json");
         if(conf.getBoolean("training")){
-            for(int i = 0; i < 50; i++) {
+            for(int i = 0; i < 10000; i++) {
                 Play.start();
                 for(int k : RLAgent.rewards.keySet()) {
                     ArrayList<Rewards> list = RLAgent.rewards.get(k);
@@ -37,11 +46,104 @@ public class Main {
                     }
 
                 }
+                if(i % 10 == 0){ copyVariablesFromSourceToTarget();for(int sc : Game.score) System.out.println(sc);}
                 RLAgent.rewards = new HashMap<>();
             }
+            Path saveFolder = Files.createDirectory(Path.of("./model"));
+            Signature.Builder input =  Signature.builder("input").input("input", RLAgent.stateInput);
+            Signature.Builder output = Signature.builder("output").output("probabilities", RLAgent.actionProbabilities);
+            SavedModelBundle.exporter(saveFolder.toString())
+                    .withFunctions(SessionFunction.create(input.build(), RLAgent.session), SessionFunction.create(output.build(), RLAgent.session))
+                    .withSession(RLAgent.session)//.withFunctions(SessionFunction.create(input.build(), RLAgent.session), SessionFunction.create(output.build(), RLAgent.session))
+                    .export();
+
+
         }else{
             System.out.println("Nije trening");
         }
+    }
+
+    private static void copyVariablesFromSourceToTarget() {
+        // Fetch and copy weights1
+        TFloat32 sourceWeights1 = (TFloat32) RLAgent.session.runner()
+                .fetch(RLAgent.weights1)
+                .run()
+                .get(0);
+        RLAgentTrain.copying = RLAgentTrain.tf.assign(RLAgentTrain.weights1, RLAgentTrain.tf.constant(sourceWeights1));
+        RLAgentTrain.session.runner()
+                .addTarget(RLAgentTrain.copying)
+                .run();
+
+        // Fetch and copy biases1
+        TFloat32 sourceBiases1 = (TFloat32) RLAgent.session.runner()
+                .fetch(RLAgent.biases1)
+                .run()
+                .get(0);
+        RLAgentTrain.copying = RLAgentTrain.tf.assign(RLAgentTrain.biases1, RLAgentTrain.tf.constant(sourceBiases1));
+        RLAgentTrain.session.runner()
+                .addTarget(RLAgentTrain.copying)
+                .run();
+
+// Fetch and copy weights2
+        TFloat32 sourceWeights2 = (TFloat32) RLAgent.session.runner()
+                .fetch(RLAgent.weights2)
+                .run()
+                .get(0);
+        RLAgentTrain.copying = RLAgentTrain.tf.assign(RLAgentTrain.weights2, RLAgentTrain.tf.constant(sourceWeights2));
+        RLAgentTrain.session.runner()
+                .addTarget(RLAgentTrain.copying)
+                .run();
+
+        // Fetch and copy biases2
+        TFloat32 sourceBiases2 = (TFloat32) RLAgent.session.runner()
+                .fetch(RLAgent.biases2)
+                .run()
+                .get(0);
+        RLAgentTrain.copying = RLAgentTrain.tf.assign(RLAgentTrain.biases2, RLAgentTrain.tf.constant(sourceBiases2));
+        RLAgentTrain.session.runner()
+                .addTarget(RLAgentTrain.copying)
+                .run();
+
+        // Fetch and copy weights3
+        TFloat32 sourceWeights3 = (TFloat32) RLAgent.session.runner()
+                .fetch(RLAgent.weights3)
+                .run()
+                .get(0);
+        RLAgentTrain.copying = RLAgentTrain.tf.assign(RLAgentTrain.weights3, RLAgentTrain.tf.constant(sourceWeights3));
+        RLAgentTrain.session.runner()
+                .addTarget(RLAgentTrain.copying)
+                .run();
+
+        // Fetch and copy biases3
+        TFloat32 sourceBiases3 = (TFloat32) RLAgent.session.runner()
+                .fetch(RLAgent.biases3)
+                .run()
+                .get(0);
+        RLAgentTrain.copying = RLAgentTrain.tf.assign(RLAgentTrain.biases3, RLAgentTrain.tf.constant(sourceBiases3));
+        RLAgentTrain.session.runner()
+                .addTarget(RLAgentTrain.copying)
+                .run();
+
+        // Fetch and copy weights4
+        TFloat32 sourceWeights4 = (TFloat32) RLAgent.session.runner()
+                .fetch(RLAgent.weights4)
+                .run()
+                .get(0);
+        RLAgentTrain.copying = RLAgentTrain.tf.assign(RLAgentTrain.weights4, RLAgentTrain.tf.constant(sourceWeights4));
+        RLAgentTrain.session.runner()
+                .addTarget(RLAgentTrain.copying)
+                .run();
+
+        // Fetch and copy biases4
+        TFloat32 sourceBiases4 = (TFloat32) RLAgent.session.runner()
+                .fetch(RLAgent.biases4)
+                .run()
+                .get(0);
+        RLAgentTrain.copying = RLAgentTrain.tf.assign(RLAgentTrain.biases4, RLAgentTrain.tf.constant(sourceBiases4));
+        RLAgentTrain.session.runner()
+                .addTarget(RLAgentTrain.copying)
+                .run();
 
     }
-}
+
+    }
