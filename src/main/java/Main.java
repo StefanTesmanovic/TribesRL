@@ -22,11 +22,12 @@ public class Main {
 
     public static int[] score = new int[2];
     public static void main(String[] args) throws IOException {
+
         RLAgent.initNN();
         RLAgentTrain.initNN();
         JSONObject conf = new IO().readJSON("training.json");
         if(conf.getBoolean("training")){
-            for(int i = 0; i < 10000; i++) {
+            for(int i = 0; i < 101; i++) {
                 Play.start();
                 for(int k : RLAgent.rewards.keySet()) {
                     ArrayList<Rewards> list = RLAgent.rewards.get(k);
@@ -46,16 +47,20 @@ public class Main {
                     }
 
                 }
+                if(i > 0 && i % 100 == 0) {
+                    Path saveFolder = Files.createDirectory(Path.of("./model"+i));
+                    Signature.Builder input = Signature.builder("input").input("input", RLAgent.stateInput);
+                    Signature.Builder output = Signature.builder("output").output("probabilities", RLAgent.actionProbabilities);
+                    SavedModelBundle.exporter(saveFolder.toString())
+                            .withFunctions(SessionFunction.create(input.build(), RLAgent.session), SessionFunction.create(output.build(), RLAgent.session))
+                            .withSession(RLAgent.session)//.withFunctions(SessionFunction.create(input.build(), RLAgent.session), SessionFunction.create(output.build(), RLAgent.session))
+                            .export();
+                    System.out.println(i);
+
+                }
                 if(i % 10 == 0){ copyVariablesFromSourceToTarget();for(int sc : Game.score) System.out.println(sc);}
                 RLAgent.rewards = new HashMap<>();
             }
-            Path saveFolder = Files.createDirectory(Path.of("./model"));
-            Signature.Builder input =  Signature.builder("input").input("input", RLAgent.stateInput);
-            Signature.Builder output = Signature.builder("output").output("probabilities", RLAgent.actionProbabilities);
-            SavedModelBundle.exporter(saveFolder.toString())
-                    .withFunctions(SessionFunction.create(input.build(), RLAgent.session), SessionFunction.create(output.build(), RLAgent.session))
-                    .withSession(RLAgent.session)//.withFunctions(SessionFunction.create(input.build(), RLAgent.session), SessionFunction.create(output.build(), RLAgent.session))
-                    .export();
 
 
         }else{

@@ -54,7 +54,7 @@ public class RLAgent extends Agent{
     public static Variable<TFloat32> weights4;
     public static Variable<TFloat32> biases4;
 
-    public static int ActionSpaceSize = 52;
+    public static int ActionSpaceSize = 52, StateSpaceSize = 8*7;
     public static Session session;
     private Random m_rnd;
     public static Gradients gradients;
@@ -128,7 +128,7 @@ public class RLAgent extends Agent{
         Action action = new EndTurn();
         if(units == null) return action;
         for (int unID : units) {
-            float[] input = Input(unID, gs);
+            float[] input = InputNew(unID, gs);
             //int rand = m_rnd.nextInt(7 * 7 + 3);//plus 3 for upgrade, recover and disband
             TFloat32 mrtviTenzor = TFloat32.tensorOf(Shape.of(1, input.length), data -> {
                 for (int i = 0; i < input.length; i++) {
@@ -154,7 +154,7 @@ public class RLAgent extends Agent{
             System.out.println("\n" + a);**/
             //System.out.println(actionProbs.size());//actionProbs.copyTo(arr));//.getFloat(0,2));
 
-            for(int k = 0; k < 52; k++){
+            for(int k = 0; k < ActionSpaceSize; k++){
                 action = outputAction(unID, gs, outputIndexes[k]);
                 if(action != null){
                     if(!rewards.containsKey(unID))
@@ -215,6 +215,91 @@ public class RLAgent extends Agent{
         }
         return ret;
     }
+
+    private static float[] InputNew(int unitID, GameState gs){
+        float[] ret = new float[StateSpaceSize], temp;
+        int eDef=0, eAt = 8, fAt = 8*2, village = 8*3, ruins = 8*4, fCity = 8*5, eCity = 8*6;
+        Unit actor = (Unit) gs.getActor(unitID);
+        int tribeID = actor.getTribeId();
+        Vector2d position = actor.getPosition(), target;
+        Board board = gs.getBoard();
+        float multiplier;
+        for(int i = 0; i < TableVectors.mSize; i++){
+            for(int j = 0; j < TableVectors.mSize; j++){
+                target = new Vector2d(i, j);
+                Types.TERRAIN teren = board.getTerrainAt(i,j);
+                if(teren == Types.TERRAIN.VILLAGE){
+                    temp = TableVectors.Calculate(position, target);
+                    for(int k = 0; k < 8; k++) {
+                        if(ret[k+village] > temp[k])
+                            continue;
+                        ret[k + village] = temp[k];
+                    }
+                }else if(board.getResourceAt(i,j) == Types.RESOURCE.RUINS){
+                    temp = TableVectors.Calculate(position, target);
+                    for(int k = 0; k < 8; k++) {
+                        if(ret[k+ruins] > temp[k])
+                            continue;
+                        ret[k + ruins] = temp[k];
+                    }
+                }else if(teren == Types.TERRAIN.CITY){
+                    int city = board.getCityIdAt(i,j);
+                    City grad = (City) gs.getActor(city);
+                    multiplier = 1;
+                    if(grad.hasWalls()) multiplier = (float)0.7;
+                    int trId = grad.getTribeId();
+                    if(trId != tribeID) {
+                        temp = TableVectors.Calculate(position, target);
+                        for(int k = 0; k < 8; k++) {
+                            if(ret[k+eCity] > temp[k]*multiplier)
+                                continue;
+                            ret[k + eCity] = temp[k]*multiplier;
+                        }
+                    }else{
+                        temp = TableVectors.Calculate(position, target);
+                        for(int k = 0; k < 8; k++) {
+                            if(ret[k+fCity] > temp[k])
+                                continue;
+                            ret[k + fCity] = temp[k];
+                        }
+                    }
+                }
+                if(i == position.x && j == position.y)
+                    continue;
+                Unit unit = board.getUnitAt(i,j);
+                if(unit == null) continue;
+                if(unit.getTribeId() != tribeID){
+                    multiplier = (float)actor.ATK/((float)actor.ATK*((float)actor.getCurrentHP()/(float)actor.getMaxHP()) + unit.DEF*((float)unit.getCurrentHP()/(float)unit.getMaxHP()));
+                    temp = TableVectors.Calculate(position, target);
+                    for(int k = 0; k < 8; k++) {
+                        if(ret[k+eDef] > temp[k]*multiplier)
+                            continue;
+                        ret[k + eDef] = temp[k]*multiplier;
+                    }
+                    multiplier = (float)actor.DEF/((float)actor.DEF*((float)actor.getCurrentHP()/(float)actor.getMaxHP()) + (float)unit.ATK*((float)unit.getCurrentHP()/(float)unit.getMaxHP()));
+                    temp = TableVectors.Calculate(position, target);
+                    for(int k = 0; k < 8; k++) {
+                        if(ret[k+eAt] > temp[k]*multiplier)
+                            continue;
+                        ret[k + eAt] = temp[k]*multiplier;
+                    }
+                }else{
+                    multiplier = ((float)unit.ATK*(float)unit.getCurrentHP()/(float)unit.getMaxHP())/5;// 5 is max attack of all units (super unit attack)
+                    temp = TableVectors.Calculate(position, target);
+                    for(int k = 0; k < 8; k++) {
+                        if(ret[k+fAt] > temp[k]*multiplier)
+                            continue;
+                        ret[k + fAt] = temp[k]*multiplier;
+                    }
+                }
+
+            }
+        }
+
+
+        return ret;
+    }
+
     private double[] normaliseInput(double[] Input){
         return new double[8];
     }
@@ -286,8 +371,6 @@ public class RLAgent extends Agent{
 
     public static Integer[] sortedArgs(TFloat32 arr) {
         int size = (int)arr.size();  // Assuming 1D NdArray
-
-
         // Create an array of indices
         Integer[] indices = new Integer[size];
         for (int i = 0; i < size; i++) {
@@ -306,7 +389,7 @@ public class RLAgent extends Agent{
     }
 
     public static void initNN(){
-        int numActions = ActionSpaceSize, input = 7*7*8;
+        int numActions = ActionSpaceSize, input = StateSpaceSize;
         graph = new Graph();
         tf = Ops.create(graph);
         // Define the input placeholder (state input)
@@ -315,13 +398,13 @@ public class RLAgent extends Agent{
         rew = tf.placeholder(TFloat32.class, Placeholder.shape(Shape.of(-1)));
 
 
-        // First hidden layer: input -> 300 neurons
-        weights1 = tf.variable(tf.random.truncatedNormal(tf.constant(new long[]{input, 300}), TFloat32.class));
-        biases1 = tf.variable(tf.zeros(tf.constant(new long[]{300}), TFloat32.class));
+        // First hidden layer: input -> 200 neurons
+        weights1 = tf.variable(tf.random.truncatedNormal(tf.constant(new long[]{input, 200}), TFloat32.class));
+        biases1 = tf.variable(tf.zeros(tf.constant(new long[]{200}), TFloat32.class));
         Operand<TFloat32> layer1 = tf.nn.relu(tf.math.add(tf.linalg.matMul(stateInput, weights1), biases1));
 
         // Second hidden layer: 300 -> 150 neurons
-        weights2 = tf.variable(tf.random.truncatedNormal(tf.constant(new long[]{300, 150}), TFloat32.class));
+        weights2 = tf.variable(tf.random.truncatedNormal(tf.constant(new long[]{200, 150}), TFloat32.class));
         biases2 = tf.variable(tf.zeros(tf.constant(new long[]{150}), TFloat32.class));
         Operand<TFloat32> layer2 = tf.nn.relu(tf.math.add(tf.linalg.matMul(layer1, weights2), biases2));
 

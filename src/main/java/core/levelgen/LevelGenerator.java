@@ -21,7 +21,7 @@ import java.util.*;
 public class LevelGenerator {
 
     //Level parameters, can be changed using init().
-    private int mapSize;
+    public int mapSize;
     private int smoothing;
     private int relief;
     private double initialLand;

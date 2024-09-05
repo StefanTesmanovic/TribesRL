@@ -122,7 +122,7 @@ public class SimpleAgent extends Agent {
         }else if (a.getActionType() ==  RECOVER) {
             score = evalRecover(a, gs, thisTribe);
         }else if (a.getActionType() ==  CAPTURE || a.getActionType() ==  EXAMINE) {
-            score = 5; //Capturing provides only benefits
+            score = 10; //Capturing provides only benefits
         }else if (a.getActionType() ==  HEAL_OTHERS) {
             score = evalHeal(a, gs);
         }else if (a.getActionType() ==  CONVERT) {
@@ -334,7 +334,6 @@ public class SimpleAgent extends Agent {
         }
         return 2;
     }
-
 
     //Evaluate a clear action
     private int evalClear(Tribe thisTribe) {
