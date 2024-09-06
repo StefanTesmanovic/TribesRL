@@ -8,6 +8,8 @@ import core.game.GameState;
 import players.mc.MonteCarloAgent;
 import utils.ElapsedCpuTimer;
 
+import java.awt.*;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Random;
@@ -32,7 +34,7 @@ public abstract class Agent {
      * @param ect - a timer that indicates when the turn time is due to finish.
      * @return - action to play in this game state.
      */
-    public abstract Action act(GameState gs, ElapsedCpuTimer ect);
+    public abstract Action act(GameState gs, ElapsedCpuTimer ect) throws IOException;
 
     /**
      * Function called at the end of the game. May be used by agents for final analysis.

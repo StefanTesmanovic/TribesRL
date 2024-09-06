@@ -12,6 +12,8 @@ import core.actors.City;
 import core.actors.units.Unit;
 import core.game.Board;
 import core.game.GameState;
+import gui.GUI;
+import gui.GameView;
 import org.tensorflow.*;
 import org.tensorflow.framework.optimizers.Adam;
 import org.tensorflow.framework.optimizers.Optimizer;
@@ -31,6 +33,11 @@ import utils.Pair;
 import utils.Vector2d;
 
 
+import javax.imageio.ImageIO;
+import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
 import java.util.*;
 
 import static org.tensorflow.op.core.ReduceSum.keepDims;
@@ -74,7 +81,8 @@ public class RLAgentTrain extends Agent{
     }
 
     @Override
-    public Action act(GameState gs, ElapsedCpuTimer ect) {
+    public Action act(GameState gs, ElapsedCpuTimer ect) throws IOException {
+
         SimpleAgent temp = new SimpleAgent(seed);
         //Gather all available actions:
         ArrayList<Action> allActions = gs.getAllAvailableActions();

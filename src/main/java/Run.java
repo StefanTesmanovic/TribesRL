@@ -22,6 +22,8 @@ import players.portfolioMCTS.PortfolioMCTSPlayer;
 import players.rhea.RHEAAgent;
 import players.rhea.RHEAParams;
 
+import java.io.IOException;
+
 import static core.Constants.*;
 import static core.Types.TRIBE.*;
 import static core.Types.TRIBE.OUMAJI;
@@ -34,7 +36,7 @@ class Run {
      * @param ki - Key controller
      * @param ac - Action controller
      */
-    static void runGame(Game g, KeyController ki, ActionController ac) {
+    static void runGame(Game g, KeyController ki, ActionController ac) throws IOException {
         WindowInput wi = null;
         GUI frame = null;
         if (VISUALS) {
@@ -53,7 +55,7 @@ class Run {
      * Runs a game, no visuals nor human player
      * @param g - game to run
      */
-    static void runGame(Game g) {
+    static void runGame(Game g) throws IOException {
         g.run(null, null);
     }
 

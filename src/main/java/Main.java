@@ -1,4 +1,5 @@
 import core.game.Game;
+import gui.GUI;
 import org.json.JSONObject;
 import org.tensorflow.Session;
 import org.tensorflow.SessionFunction;
@@ -11,6 +12,10 @@ import players.RLAgentTrain;
 import players.Rewards;
 import utils.file.IO;
 
+import javax.imageio.ImageIO;
+import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -21,7 +26,7 @@ import java.util.HashMap;
 public class Main {
 
     public static int[] score = new int[2];
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws IOException, AWTException {
 
         RLAgent.initNN();
         RLAgentTrain.initNN();
@@ -29,6 +34,7 @@ public class Main {
         if(conf.getBoolean("training")){
             for(int i = 0; i < 101; i++) {
                 Play.start();
+
                 for(int k : RLAgent.rewards.keySet()) {
                     ArrayList<Rewards> list = RLAgent.rewards.get(k);
                     float[] G = new float[list.size()];

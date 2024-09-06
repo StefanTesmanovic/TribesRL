@@ -14,6 +14,8 @@ import utils.mapelites.Feature;
 import utils.stats.AIStats;
 import utils.stats.GameplayStats;
 
+import java.awt.*;
+import java.io.IOException;
 import java.util.*;
 
 import static core.Constants.*;
@@ -206,7 +208,7 @@ public class Game {
      * @param frame window to draw the game
      * @param wi    input for the window.
      */
-    public void run(GUI frame, WindowInput wi) {
+    public void run(GUI frame, WindowInput wi) throws IOException {
         if (frame == null || wi == null)
             VISUALS = false;
 
@@ -269,7 +271,7 @@ public class Game {
      *
      * @param frame GUI of the game
      */
-    private void tick(GUI frame) {
+    private void tick(GUI frame) throws IOException {
 
 //        System.out.println("Tick: " + gs.getTick());
         Tribe[] tribes = gs.getTribes();
@@ -316,7 +318,7 @@ public class Game {
      * @param playerID ID of the player whose turn is being processed.
      * @param tribe    tribe that corresponds to this player.
      */
-    private void processTurn(int playerID, Tribe tribe, GUI frame) {
+    private void processTurn(int playerID, Tribe tribe, GUI frame) throws IOException {
         //Init the turn for this tribe (stars, unit reset, etc).
         gs.initTurn(tribe);
 

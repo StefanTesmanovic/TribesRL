@@ -22,6 +22,7 @@ import players.rhea.RHEAParams;
 import players.portfolio.RandomPortfolio;
 import utils.file.IO;
 
+import java.io.IOException;
 import java.util.*;
 
 import static core.Types.GAME_MODE.*;
@@ -108,8 +109,7 @@ public class Play {
         }
     }
 
-    private static void play(Types.TRIBE[] tribes, long levelSeed, Run.PlayerType[] playerTypes, Types.GAME_MODE gameMode)
-    {
+    private static void play(Types.TRIBE[] tribes, long levelSeed, Run.PlayerType[] playerTypes, Types.GAME_MODE gameMode) throws IOException {
         KeyController ki = new KeyController(true);
         ActionController ac = new ActionController();
 
@@ -117,8 +117,7 @@ public class Play {
         Run.runGame(game, ki, ac);
     }
 
-    private static void play(String levelFile, Run.PlayerType[] playerTypes, Types.GAME_MODE gameMode)
-    {
+    private static void play(String levelFile, Run.PlayerType[] playerTypes, Types.GAME_MODE gameMode) throws IOException {
         KeyController ki = new KeyController(true);
         ActionController ac = new ActionController();
 
@@ -127,8 +126,7 @@ public class Play {
     }
 
 
-    private static void load(Run.PlayerType[] playerTypes, String saveGameFile)
-    {
+    private static void load(Run.PlayerType[] playerTypes, String saveGameFile) throws IOException {
         KeyController ki = new KeyController(true);
         ActionController ac = new ActionController();
 
