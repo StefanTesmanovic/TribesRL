@@ -153,8 +153,27 @@ public class RLAgent extends Agent{
             }
             System.out.println("\n" + a);**/
             //System.out.println(actionProbs.size());//actionProbs.copyTo(arr));//.getFloat(0,2));
-
+            double prob;
+            int ind;
             for(int k = 0; k < ActionSpaceSize; k++){
+                prob = m_rnd.nextDouble();
+                if(prob > 0.75){
+                    ind = -1;
+                    while(ind < k)
+                        ind = m_rnd.nextInt(ActionSpaceSize);
+                    action = outputAction(unID, gs, outputIndexes[ind]);
+                    if(action != null){
+                        if(!rewards.containsKey(unID))
+                            rewards.put(unID, new ArrayList<Rewards>());
+                        ArrayList<Rewards> tmp = rewards.get(unID);
+                        tmp.add(new Rewards(outputIndexes[k], (new SimpleAgent(seed)).evalAction(gs, action), mrtviTenzor));
+                        return action;
+                    }else{
+                        outputIndexes[ind] = outputIndexes[k] + outputIndexes[ind];
+                        outputIndexes[k] = outputIndexes[ind] - outputIndexes[k];
+                        outputIndexes[ind] = outputIndexes[ind] - outputIndexes[k];
+                    }
+                }
                 action = outputAction(unID, gs, outputIndexes[k]);
                 if(action != null){
                     if(!rewards.containsKey(unID))
