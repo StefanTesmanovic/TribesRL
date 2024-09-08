@@ -32,7 +32,7 @@ public class Main {
         RLAgentTrain.initNN();
         JSONObject conf = new IO().readJSON("training.json");
         if(conf.getBoolean("training")){
-            for(int i = 0; i < 101; i++) {
+            for(int i = 0; i < 10001; i++) {
                 Play.start();
 
                 for(int k : RLAgent.rewards.keySet()) {
@@ -53,8 +53,8 @@ public class Main {
                     }
 
                 }
-                if(i > 0 && i % 100 == 0) {
-                    Path saveFolder = Files.createDirectory(Path.of("./model"+i));
+                if(i > 0 && i % 250 == 0) {
+                    Path saveFolder = Files.createDirectory(Path.of("./model-tanh-0.01-"+i));
                     Signature.Builder input = Signature.builder("input").input("input", RLAgent.stateInput);
                     Signature.Builder output = Signature.builder("output").output("probabilities", RLAgent.actionProbabilities);
                     SavedModelBundle.exporter(saveFolder.toString())
@@ -64,8 +64,10 @@ public class Main {
                     System.out.println(i);
 
                 }
-                if(i % 10 == 0){ copyVariablesFromSourceToTarget();for(int sc : Game.score) System.out.println(sc);}
+                if(i % 10 == 0){ for(int sc : Game.score) System.out.println(sc);}
                 RLAgent.rewards = new HashMap<>();
+                if(i % 50 == 0)
+                    copyVariablesFromSourceToTarget();
             }
 
 
@@ -76,6 +78,9 @@ public class Main {
 
     private static void copyVariablesFromSourceToTarget() {
         // Fetch and copy weights1
+        RLAgentTrain.session.close();
+        RLAgentTrain.graph.close();
+        RLAgentTrain.initNN();
         TFloat32 sourceWeights1 = (TFloat32) RLAgent.session.runner()
                 .fetch(RLAgent.weights1)
                 .run()

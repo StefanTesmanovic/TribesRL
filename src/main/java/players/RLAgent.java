@@ -158,20 +158,16 @@ public class RLAgent extends Agent{
             for(int k = 0; k < ActionSpaceSize; k++){
                 prob = m_rnd.nextDouble();
                 if(prob > 0.75){
-                    ind = -1;
-                    while(ind < k)
-                        ind = m_rnd.nextInt(ActionSpaceSize);
+                    ind = m_rnd.nextInt(k, ActionSpaceSize);
                     action = outputAction(unID, gs, outputIndexes[ind]);
                     if(action != null){
                         if(!rewards.containsKey(unID))
                             rewards.put(unID, new ArrayList<Rewards>());
                         ArrayList<Rewards> tmp = rewards.get(unID);
-                        tmp.add(new Rewards(outputIndexes[k], (new SimpleAgent(seed)).evalAction(gs, action), mrtviTenzor));
+                        tmp.add(new Rewards(outputIndexes[ind], (new SimpleAgent(seed)).evalAction(gs, action), mrtviTenzor));
                         return action;
                     }else{
-                        outputIndexes[ind] = outputIndexes[k] + outputIndexes[ind];
-                        outputIndexes[k] = outputIndexes[ind] - outputIndexes[k];
-                        outputIndexes[ind] = outputIndexes[ind] - outputIndexes[k];
+                        outputIndexes[ind] = outputIndexes[k];
                     }
                 }
                 action = outputAction(unID, gs, outputIndexes[k]);
@@ -420,17 +416,17 @@ public class RLAgent extends Agent{
         // First hidden layer: input -> 200 neurons
         weights1 = tf.variable(tf.random.truncatedNormal(tf.constant(new long[]{input, 200}), TFloat32.class));
         biases1 = tf.variable(tf.zeros(tf.constant(new long[]{200}), TFloat32.class));
-        Operand<TFloat32> layer1 = tf.nn.relu(tf.math.add(tf.linalg.matMul(stateInput, weights1), biases1));
+        Operand<TFloat32> layer1 = tf.math.tanh(tf.math.add(tf.linalg.matMul(stateInput, weights1), biases1));
 
         // Second hidden layer: 300 -> 150 neurons
         weights2 = tf.variable(tf.random.truncatedNormal(tf.constant(new long[]{200, 150}), TFloat32.class));
         biases2 = tf.variable(tf.zeros(tf.constant(new long[]{150}), TFloat32.class));
-        Operand<TFloat32> layer2 = tf.nn.relu(tf.math.add(tf.linalg.matMul(layer1, weights2), biases2));
+        Operand<TFloat32> layer2 = tf.math.tanh(tf.math.add(tf.linalg.matMul(layer1, weights2), biases2));
 
         // Third hidden layer: 150 -> 100 neurons
         weights3 = tf.variable(tf.random.truncatedNormal(tf.constant(new long[]{150, 100}), TFloat32.class));
         biases3 = tf.variable(tf.zeros(tf.constant(new long[]{100}), TFloat32.class));
-        Operand<TFloat32> layer3 = tf.nn.relu(tf.math.add(tf.linalg.matMul(layer2, weights3), biases3));
+        Operand<TFloat32> layer3 = tf.math.tanh(tf.math.add(tf.linalg.matMul(layer2, weights3), biases3));
 
         // Output layer: 100 -> Number of actions
         weights4 = tf.variable(tf.random.truncatedNormal(tf.constant(new long[]{100, numActions}), TFloat32.class));
@@ -443,7 +439,7 @@ public class RLAgent extends Agent{
         Operand<TFloat32> logProbs = tf.math.log(tf.reduceSum(tf.math.mul(actionProbabilities, actions), tf.constant(1)));
         Operand<TFloat32> loss = tf.math.neg(tf.math.mul(logProbs, rew)); // Multiply by rewards
 
-        Optimizer optimizer = new Adam(graph, 0.001f);//Adam.createAdamMinimize(tf, 0.001f)//.create(tf, 0.001f);
+        Optimizer optimizer = new Adam(graph, 0.01f);//Adam.createAdamMinimize(tf, 0.001f)//.create(tf, 0.001f);
         minimize = optimizer.minimize(loss);
 
         session = new Session(graph);
