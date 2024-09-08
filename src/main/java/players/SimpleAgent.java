@@ -122,7 +122,7 @@ public class SimpleAgent extends Agent {
         }else if (a.getActionType() ==  RECOVER) {
             score = evalRecover(a, gs, thisTribe);
         }else if (a.getActionType() ==  CAPTURE || a.getActionType() ==  EXAMINE) {
-            score = 10; //Capturing provides only benefits
+            score = 100; //Capturing provides only benefits
         }else if (a.getActionType() ==  HEAL_OTHERS) {
             score = evalHeal(a, gs);
         }else if (a.getActionType() ==  CONVERT) {
@@ -490,7 +490,7 @@ public class SimpleAgent extends Agent {
                 case KNIGHT:
                 case CATAPULT:
                     if (allegianceVal < 0) {
-                        return 5;
+                        return 20;
                     } else if(allegianceVal < 15){
                         return 2;
                     }
@@ -562,7 +562,7 @@ public class SimpleAgent extends Agent {
                 }
                 if (t == Types.TERRAIN.VILLAGE) { // High incentive to move to village to capture as it is easier than capturing an actual city
                     if (Vector2d.chebychevDistance(dest, new Vector2d(x, y)) < Vector2d.chebychevDistance(thisUnit.getPosition(), new Vector2d(x, y))) {
-                        return 10;
+                        return 50;
                     }
                 }
             }
@@ -592,7 +592,7 @@ public class SimpleAgent extends Agent {
             if (attacker.getCurrentHP() >= defender.getCurrentHP()) {
                 if (attacker.ATK > defender.DEF) {
                     if (allegianceVal < 0) {
-                        return 5;
+                        return 20;
                     } else{
                         return allegianceVal < 15 ? 2 : 0;
                     }
@@ -614,7 +614,7 @@ public class SimpleAgent extends Agent {
                 return 0;
             }else if(enemyInRange && !inEnemyRange) {
                 if (allegianceVal < 0) {
-                    score = 5;
+                    score = 30;
                 } else{
                     score = allegianceVal < 15 ? 2 : 0;
                 }
