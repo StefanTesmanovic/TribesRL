@@ -25,6 +25,8 @@ import org.tensorflow.ndarray.buffer.FloatDataBuffer;
 import org.tensorflow.op.Op;
 import org.tensorflow.op.Ops;
 import org.tensorflow.op.core.*;
+import org.tensorflow.proto.ConfigProto;
+import org.tensorflow.proto.GPUOptions;
 import org.tensorflow.types.TFloat32;
 import org.tensorflow.types.TInt32;
 import org.tensorflow.types.TString;
@@ -150,8 +152,8 @@ public class RLAgentTrain extends Agent{
              tf.array(-1L, input.length)
              ).asTensor();**/
             TFloat32 actionProbs = (TFloat32) session.runner()
-                    .fetch(actionProbabilities)
                     .feed(stateInput.asOutput(), mrtviTenzor)
+                    .fetch(actionProbabilities)
                     .run()
                     .get(0);
             //NdArray arr = NdArrays.ofFloats(Shape.of(1,51));
@@ -399,6 +401,13 @@ public class RLAgentTrain extends Agent{
     }
 
     public static void initNN(){
+        ConfigProto.Builder configBuilder = ConfigProto.newBuilder();
+        GPUOptions.Builder gpuOptionsBuilder = GPUOptions.newBuilder();
+
+        // Set GPU memory fraction, allow growth, etc. (optional configurations)
+        gpuOptionsBuilder.setAllowGrowth(true);
+        configBuilder.setGpuOptions(gpuOptionsBuilder);
+
         int numActions = ActionSpaceSize, input = StateSpaceSize;
         graph = new Graph();
         tf = Ops.create(graph);
@@ -431,7 +440,7 @@ public class RLAgentTrain extends Agent{
         // Apply softmax to get the action probabilities
         actionProbabilities = tf.math.div(logits,tf.reduceSum(logits, tf.array(1), keepDims(false)));//tf.nn.softmax(logits);
 
-        session = new Session(graph);
+        session = new Session(graph, configBuilder.build());
     }
 
     @Override

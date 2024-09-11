@@ -2,11 +2,10 @@ import core.Constants;
 import core.game.Game;
 import gui.GUI;
 import org.json.JSONObject;
-import org.tensorflow.Session;
-import org.tensorflow.SessionFunction;
-import org.tensorflow.Signature;
+import org.tensorflow.*;
+import org.tensorflow.ndarray.Shape;
+import org.tensorflow.proto.DeviceAttributes;
 import org.tensorflow.types.TFloat32;
-import org.tensorflow.SavedModelBundle;
 import org.tensorflow.SavedModelBundle.*;
 import players.RLAgent;
 import players.RLAgentTrain;
@@ -28,7 +27,7 @@ public class Main {
 
     public static int[] score = new int[2];
     public static void main(String[] args) throws IOException, AWTException {
-
+        double startTime = System.currentTimeMillis();
         RLAgent.initNN();
         RLAgentTrain.initNN();
         JSONObject conf = new IO().readJSON("training.json");
@@ -47,11 +46,18 @@ public class Main {
                         ac[list.get(z).index] = 1;
                         RLAgent.session.runner()
                                 .feed(RLAgent.stateInput.asOutput(), list.get(z).Gstate)
-                                .feed(RLAgent.actions.asOutput(), TFloat32.vectorOf(ac))
-                                .feed(RLAgent.rew.asOutput(), TFloat32.scalarOf(G[z])) // Feed rewards during the backward pass
-                                .addTarget(RLAgent.minimize)
+                                .feed(RLAgent.actions.asOutput(), mrtviTenzor)//.withShape(org.tensorflow.ndarray.Shape.of(ac.length, 1)))
+                                .feed(RLAgent.rew.asOutput(), TFloat32.scalarOf(G[z]))
+                                .addTarget(RLAgent.accumulatedLoss)
                                 .run();
+                        System.out.println();
                     }
+
+//                    RLAgent.session.runner()
+//                            .feed(RLAgent.movesCount.asOutput(), TFloat32.scalarOf((float) list.size()))
+//                            .addTarget(RLAgent.minimize)
+//                           .run();
+//                    RLAgent.session.runner().addTarget(RLAgent.resetAccumulatedLoss).run();
 
                 }
                 if(i > 0 && i % 250 == 0) {
@@ -65,10 +71,10 @@ public class Main {
                     System.out.println(i);
 
                 }
-                if(i % 10 == 0){ for(int sc : Game.score) System.out.println(sc);}
-                RLAgent.rewards = new HashMap<>();
-                if(i % 50 == 0)
+                if(i % 10 == 0){ System.out.println(i + "   " +(System.currentTimeMillis()-startTime)/60000); for(int sc : Game.score) System.out.println(sc);}
+                if(i>0 && i % 50 == 0)
                     copyVariablesFromSourceToTarget();
+                RLAgent.rewards = new HashMap<>();
             }
 
 

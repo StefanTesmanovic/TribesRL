@@ -1,6 +1,7 @@
 package players;
 
 
+import com.google.protobuf.InvalidProtocolBufferException;
 import core.Types;
 import core.actions.Action;
 import core.actions.tribeactions.EndTurn;
@@ -23,6 +24,8 @@ import org.tensorflow.ndarray.buffer.FloatDataBuffer;
 import org.tensorflow.op.Op;
 import org.tensorflow.op.Ops;
 import org.tensorflow.op.core.*;
+import org.tensorflow.proto.ConfigProto;
+import org.tensorflow.proto.GPUOptions;
 import org.tensorflow.types.TFloat32;
 import org.tensorflow.types.TInt32;
 import org.tensorflow.types.TString;
@@ -35,6 +38,9 @@ import java.util.*;
 
 import static org.tensorflow.op.core.ReduceSum.keepDims;
 public class RLAgent extends Agent{
+    public static Operand<TFloat32> accumulatedLoss;
+    public static Assign<TFloat32> resetAccumulatedLoss;
+    public static Placeholder<TFloat32> movesCount;
     public static Operand<TFloat32> logits, probabilities;
     public static Operand<TFloat32> actionProbabilities;
     public static Graph graph;
@@ -44,6 +50,7 @@ public class RLAgent extends Agent{
 
     public static Variable<TFloat32> weights1;
     public static Variable<TFloat32> biases1;
+    public static Operand<TFloat32> layer1;
 
     public static Variable<TFloat32> weights2;
     public static Variable<TFloat32> biases2;
@@ -140,8 +147,8 @@ public class RLAgent extends Agent{
                     tf.array(-1L, input.length)
             ).asTensor();**/
             TFloat32 actionProbs = (TFloat32) session.runner()
-                    .fetch(actionProbabilities)
                     .feed(stateInput.asOutput(), mrtviTenzor)
+                    .fetch(actionProbabilities)
                     .run()
                     .get(0);
             //NdArray arr = NdArrays.ofFloats(Shape.of(1,51));
@@ -404,19 +411,32 @@ public class RLAgent extends Agent{
     }
 
     public static void initNN(){
+        ConfigProto.Builder configBuilder = ConfigProto.newBuilder();
+        GPUOptions.Builder gpuOptionsBuilder = GPUOptions.newBuilder();
+
+        // Set GPU memory fraction, allow growth, etc. (optional configurations)
+        gpuOptionsBuilder.setAllowGrowth(true);
+        configBuilder.setGpuOptions(gpuOptionsBuilder);
+
         int numActions = ActionSpaceSize, input = StateSpaceSize;
         graph = new Graph();
         tf = Ops.create(graph);
         // Define the input placeholder (state input)
+        // Variable to accumulate loss
+        accumulatedLoss = tf.variable(tf.zeros(tf.constant(new long[]{1}), TFloat32.class));
+        movesCount = tf.placeholder(TFloat32.class, Placeholder.shape(Shape.of(-1)));
+
+        resetAccumulatedLoss = tf.assign(accumulatedLoss, tf.zeros(tf.constant(new long[]{1}), TFloat32.class));
+
         stateInput = tf.placeholder(TFloat32.class, Placeholder.shape(Shape.of(-1, input)));
-        actions = tf.placeholder(TFloat32.class, Placeholder.shape(Shape.of(-1, numActions)));
+        actions = tf.placeholder(TFloat32.class, Placeholder.shape(Shape.of(numActions, -1)));
         rew = tf.placeholder(TFloat32.class, Placeholder.shape(Shape.of(-1)));
 
 
         // First hidden layer: input -> 200 neurons
         weights1 = tf.variable(tf.random.truncatedNormal(tf.constant(new long[]{input, 200}), TFloat32.class));
         biases1 = tf.variable(tf.zeros(tf.constant(new long[]{200}), TFloat32.class));
-        Operand<TFloat32> layer1 = tf.math.tanh(tf.math.add(tf.linalg.matMul(stateInput, weights1), biases1));
+        layer1 = tf.math.tanh(tf.math.add(tf.linalg.matMul(stateInput, weights1), biases1));
 
         // Second hidden layer: 300 -> 150 neurons
         weights2 = tf.variable(tf.random.truncatedNormal(tf.constant(new long[]{200, 150}), TFloat32.class));
@@ -431,18 +451,22 @@ public class RLAgent extends Agent{
         // Output layer: 100 -> Number of actions
         weights4 = tf.variable(tf.random.truncatedNormal(tf.constant(new long[]{100, numActions}), TFloat32.class));
         biases4 = tf.variable(tf.zeros(tf.constant(new long[]{numActions}), TFloat32.class));
+
         logits = tf.math.add(tf.linalg.matMul(layer3, weights4), biases4);
         logits = tf.math.add(logits, tf.reduceMin(logits, tf.constant(1), ReduceMin.keepDims(false)));
         // Apply softmax to get the action probabilities
         actionProbabilities = tf.math.div(logits,tf.reduceSum(logits, tf.array(1), keepDims(false)));//tf.nn.softmax(logits);
 
-        Operand<TFloat32> logProbs = tf.math.log(tf.reduceSum(tf.math.mul(actionProbabilities, actions), tf.constant(1)));
+        Operand<TFloat32> logProbs = tf.math.log(tf.linalg.matMul(actionProbabilities, actions));
         Operand<TFloat32> loss = tf.math.neg(tf.math.mul(logProbs, rew)); // Multiply by rewards
 
-        Optimizer optimizer = new Adam(graph, 0.01f);//Adam.createAdamMinimize(tf, 0.001f)//.create(tf, 0.001f);
-        minimize = optimizer.minimize(loss);
+        accumulatedLoss = tf.math.add(accumulatedLoss, loss);
+        Operand<TFloat32> accumulatedLossDiv = tf.math.div(accumulatedLoss, movesCount);
 
-        session = new Session(graph);
+        Optimizer optimizer = new Adam(graph, 0.01f);//Adam.createAdamMinimize(tf, 0.001f)//.create(tf, 0.001f);
+        minimize = optimizer.minimize(accumulatedLossDiv);
+
+        session = new Session(graph, configBuilder.build());
     }
 
     @Override

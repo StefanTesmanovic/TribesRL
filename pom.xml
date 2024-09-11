@@ -17,6 +17,12 @@
     <dependencies>
         <dependency>
             <groupId>org.tensorflow</groupId>
+            <artifactId>tensorflow-core-native</artifactId>
+            <version>1.0.0-rc.1</version>
+            <classifier>linux-x86_64-gpu</classifier>
+        </dependency>
+        <dependency>
+            <groupId>org.tensorflow</groupId>
             <artifactId>tensorflow-core-platform</artifactId>
             <version>1.0.0-rc.1</version>
         </dependency>
@@ -24,6 +30,11 @@
             <groupId>org.tensorflow</groupId>
             <artifactId>tensorflow-framework</artifactId>
             <version>1.0.0-rc.1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.tensorflow</groupId>
+            <artifactId>tensorflow-core-api</artifactId>
+            <version>1.0.0-rc.1</version> <!-- Make sure to use the appropriate version -->
         </dependency>
         <dependency>
             <groupId>org.tensorflow</groupId>
@@ -35,29 +46,12 @@
             <artifactId>protobuf-java</artifactId>
             <version>3.19.4</version>
         </dependency>
-        <!--
-        <dependency>
-            <groupId>org.tensorflow</groupId>
-            <artifactId>tensorflow</artifactId>
-            <version>1.15.0</version>
-        </dependency>-->
         <dependency>
             <groupId>org.tensorflow</groupId>
             <artifactId>tensorflow-core-generator</artifactId>
             <version>1.0.0-rc.1</version>
             <optional>true</optional>
         </dependency>
-        <dependency>
-            <groupId>org.tensorflow</groupId>
-            <artifactId>tensorflow-core-api</artifactId>
-            <version>1.0.0-rc.1</version> <!-- Make sure to use the appropriate version -->
-        </dependency>
-        <!--
-        <dependency>
-            <groupId>org.tensorflow</groupId>
-            <artifactId>tensorflow</artifactId>
-            <version>2.16.1</version>
-        </dependency>-->
 
         <dependency>
             <groupId>org.json</groupId>
