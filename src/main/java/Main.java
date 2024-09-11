@@ -44,6 +44,10 @@ public class Main {
                     for(int z = 0; z < list.size(); z++){
                         float[] ac = new float[RLAgent.ActionSpaceSize];
                         ac[list.get(z).index] = 1;
+                        TFloat32 mrtviTenzor = TFloat32.tensorOf(Shape.of(ac.length, 1), data -> {//umesto keca bathc size da se turi
+                                    for (int g = 0; g < ac.length; g++)
+                                        data.setFloat((float) ac[g], g, 0);
+                                });
                         RLAgent.session.runner()
                                 .feed(RLAgent.stateInput.asOutput(), list.get(z).Gstate)
                                 .feed(RLAgent.actions.asOutput(), mrtviTenzor)//.withShape(org.tensorflow.ndarray.Shape.of(ac.length, 1)))
