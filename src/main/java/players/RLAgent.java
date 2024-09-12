@@ -38,15 +38,13 @@ import java.util.*;
 
 import static org.tensorflow.op.core.ReduceSum.keepDims;
 public class RLAgent extends Agent{
-    public static Operand<TFloat32> accumulatedLoss;
-    public static Assign<TFloat32> resetAccumulatedLoss;
-    public static Placeholder<TFloat32> movesCount;
+    //public static Placeholder<TFloat32> movesCount;
+    public static Graph graph;
+    public static Ops tf;
+
+    public static Placeholder<TFloat32> stateInput;
     public static Operand<TFloat32> logits, probabilities;
     public static Operand<TFloat32> actionProbabilities;
-    public static Graph graph;
-    //public static Tensor mrtviTenzor;
-    public static Ops tf;
-    public static Placeholder<TFloat32> stateInput;
 
     public static Variable<TFloat32> weights1;
     public static Variable<TFloat32> biases1;
@@ -171,7 +169,7 @@ public class RLAgent extends Agent{
                         if(!rewards.containsKey(unID))
                             rewards.put(unID, new ArrayList<Rewards>());
                         ArrayList<Rewards> tmp = rewards.get(unID);
-                        tmp.add(new Rewards(outputIndexes[ind], (new SimpleAgent(seed)).evalAction(gs, action), mrtviTenzor));
+                        tmp.add(new Rewards(outputIndexes[ind], (new SimpleAgent(seed)).evalAction(gs, action), input));
                         return action;
                     }else{
                         outputIndexes[ind] = outputIndexes[k];
@@ -182,7 +180,7 @@ public class RLAgent extends Agent{
                     if(!rewards.containsKey(unID))
                         rewards.put(unID, new ArrayList<Rewards>());
                     ArrayList<Rewards> tmp = rewards.get(unID);
-                    tmp.add(new Rewards(outputIndexes[k], (new SimpleAgent(seed)).evalAction(gs, action), mrtviTenzor));
+                    tmp.add(new Rewards(outputIndexes[k], (new SimpleAgent(seed)).evalAction(gs, action), input));
                     return action;
                 }//{ System.out.println(gs.getTick() + ":" +gs.getActiveTribeID()+ ":" +action); return action;}
             }
@@ -423,48 +421,40 @@ public class RLAgent extends Agent{
         tf = Ops.create(graph);
         // Define the input placeholder (state input)
         // Variable to accumulate loss
-        accumulatedLoss = tf.variable(tf.zeros(tf.constant(new long[]{1}), TFloat32.class));
-        movesCount = tf.placeholder(TFloat32.class, Placeholder.shape(Shape.of(-1)));
-
-        resetAccumulatedLoss = tf.assign(accumulatedLoss, tf.zeros(tf.constant(new long[]{1}), TFloat32.class));
+        //movesCount = tf.placeholder(TFloat32.class, Placeholder.shape(Shape.of(-1)));
 
         stateInput = tf.placeholder(TFloat32.class, Placeholder.shape(Shape.of(-1, input)));
-        actions = tf.placeholder(TFloat32.class, Placeholder.shape(Shape.of(numActions, -1)));
+        actions = tf.placeholder(TFloat32.class, Placeholder.shape(Shape.of(-1, numActions)));
         rew = tf.placeholder(TFloat32.class, Placeholder.shape(Shape.of(-1)));
 
-
-        // First hidden layer: input -> 200 neurons
         weights1 = tf.variable(tf.random.truncatedNormal(tf.constant(new long[]{input, 200}), TFloat32.class));
         biases1 = tf.variable(tf.zeros(tf.constant(new long[]{200}), TFloat32.class));
         layer1 = tf.math.tanh(tf.math.add(tf.linalg.matMul(stateInput, weights1), biases1));
 
-        // Second hidden layer: 300 -> 150 neurons
+
         weights2 = tf.variable(tf.random.truncatedNormal(tf.constant(new long[]{200, 150}), TFloat32.class));
         biases2 = tf.variable(tf.zeros(tf.constant(new long[]{150}), TFloat32.class));
         Operand<TFloat32> layer2 = tf.math.tanh(tf.math.add(tf.linalg.matMul(layer1, weights2), biases2));
 
-        // Third hidden layer: 150 -> 100 neurons
+
         weights3 = tf.variable(tf.random.truncatedNormal(tf.constant(new long[]{150, 100}), TFloat32.class));
         biases3 = tf.variable(tf.zeros(tf.constant(new long[]{100}), TFloat32.class));
         Operand<TFloat32> layer3 = tf.math.tanh(tf.math.add(tf.linalg.matMul(layer2, weights3), biases3));
 
-        // Output layer: 100 -> Number of actions
+
         weights4 = tf.variable(tf.random.truncatedNormal(tf.constant(new long[]{100, numActions}), TFloat32.class));
         biases4 = tf.variable(tf.zeros(tf.constant(new long[]{numActions}), TFloat32.class));
 
         logits = tf.math.add(tf.linalg.matMul(layer3, weights4), biases4);
-        logits = tf.math.add(logits, tf.reduceMin(logits, tf.constant(1), ReduceMin.keepDims(false)));
-        // Apply softmax to get the action probabilities
-        actionProbabilities = tf.math.div(logits,tf.reduceSum(logits, tf.array(1), keepDims(false)));//tf.nn.softmax(logits);
+        //logits = tf.math.add(logits, tf.reduceMin(logits, tf.constant(1)));
 
-        Operand<TFloat32> logProbs = tf.math.log(tf.linalg.matMul(actionProbabilities, actions));
-        Operand<TFloat32> loss = tf.math.neg(tf.math.mul(logProbs, rew)); // Multiply by rewards
+        actionProbabilities = tf.math.div(logits,tf.reshape(tf.reduceSum(logits, tf.array(1)), tf.array(-1, 1)));//tf.nn.softmax(logits);
 
-        accumulatedLoss = tf.math.add(accumulatedLoss, loss);
-        Operand<TFloat32> accumulatedLossDiv = tf.math.div(accumulatedLoss, movesCount);
+        Operand<TFloat32> logProbs = tf.math.log(tf.reduceSum(tf.math.mul(actionProbabilities, actions), tf.constant(1)));
+        Operand<TFloat32> loss = tf.math.neg(tf.math.mul(logProbs, rew));
 
         Optimizer optimizer = new Adam(graph, 0.01f);//Adam.createAdamMinimize(tf, 0.001f)//.create(tf, 0.001f);
-        minimize = optimizer.minimize(accumulatedLossDiv);
+        minimize = optimizer.minimize(loss);
 
         session = new Session(graph, configBuilder.build());
     }

@@ -1,26 +1,18 @@
-import core.Constants;
 import core.game.Game;
-import gui.GUI;
 import org.json.JSONObject;
 import org.tensorflow.*;
 import org.tensorflow.ndarray.Shape;
-import org.tensorflow.proto.DeviceAttributes;
 import org.tensorflow.types.TFloat32;
-import org.tensorflow.SavedModelBundle.*;
 import players.RLAgent;
 import players.RLAgentTrain;
 import players.Rewards;
 import utils.file.IO;
 
-import javax.imageio.ImageIO;
 import java.awt.*;
-import java.awt.image.BufferedImage;
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 
 public class Main {
@@ -35,35 +27,50 @@ public class Main {
             for(int i = 0; i < 10001; i++) {
                 Play.start();
 
+                ArrayList<float[]> inStates = new ArrayList<>();
+                ArrayList<float[]> actions = new ArrayList<>();
+                ArrayList<Float> rew = new ArrayList<>();
+
                 for(int k : RLAgent.rewards.keySet()) {
                     ArrayList<Rewards> list = RLAgent.rewards.get(k);
+
                     float[] G = new float[list.size()];
-                    G[list.size()-1] = list.get(list.size()-1).reward;
+                    G[list.size()-1] = list.getLast().reward;
                     for (int j = list.size()-2; j >= 0; j--)
-                        G[j] = Rewards.gamma * G[j+1] + list.get(j).reward;
+                        G[j] = Rewards.gamma * G[j + 1] + list.get(j).reward;
+
                     for(int z = 0; z < list.size(); z++){
                         float[] ac = new float[RLAgent.ActionSpaceSize];
                         ac[list.get(z).index] = 1;
-                        TFloat32 mrtviTenzor = TFloat32.tensorOf(Shape.of(ac.length, 1), data -> {//umesto keca bathc size da se turi
-                                    for (int g = 0; g < ac.length; g++)
-                                        data.setFloat((float) ac[g], g, 0);
-                                });
-                        RLAgent.session.runner()
-                                .feed(RLAgent.stateInput.asOutput(), list.get(z).Gstate)
-                                .feed(RLAgent.actions.asOutput(), mrtviTenzor)//.withShape(org.tensorflow.ndarray.Shape.of(ac.length, 1)))
-                                .feed(RLAgent.rew.asOutput(), TFloat32.scalarOf(G[z]))
-                                .addTarget(RLAgent.accumulatedLoss)
-                                .run();
-                        System.out.println();
+                        inStates.add(list.get(z).Gstate);
+                        actions.add(ac);
+                        rew.add(G[z]);
                     }
 
-//                    RLAgent.session.runner()
-//                            .feed(RLAgent.movesCount.asOutput(), TFloat32.scalarOf((float) list.size()))
-//                            .addTarget(RLAgent.minimize)
-//                           .run();
-//                    RLAgent.session.runner().addTarget(RLAgent.resetAccumulatedLoss).run();
-
                 }
+                TFloat32 inputStates = TFloat32.tensorOf(Shape.of(inStates.size(), inStates.get(0).length), data -> {
+                    for (int g = 0; g < inStates.size(); g++)
+                        for(int gg = 0; gg < inStates.get(0).length; gg++)
+                            data.setFloat( inStates.get(g)[gg], g, gg);
+                });
+
+                TFloat32 OHEActions = TFloat32.tensorOf(Shape.of(actions.size(), actions.get(0).length), data -> {
+                    for (int g = 0; g < actions.size(); g++)
+                        for(int gg = 0; gg < actions.get(0).length; gg++)
+                            data.setFloat( actions.get(g)[gg], g, gg);
+                });
+                TFloat32 rewards = TFloat32.tensorOf(Shape.of(rew.size()), data -> {
+                    for (int g = 0; g < rew.size(); g++)
+                        data.setFloat(rew.get(g), g);
+                });
+
+                RLAgent.session.runner()
+                        .feed(RLAgent.stateInput.asOutput(), inputStates)
+                        .feed(RLAgent.actions.asOutput(), OHEActions)
+                        .feed(RLAgent.rew.asOutput(), rewards)
+                        .addTarget(RLAgent.minimize)
+                        .run();
+
                 if(i > 0 && i % 250 == 0) {
                     Path saveFolder = Files.createDirectory(Path.of("./model-tanh-0.01-"+i));
                     Signature.Builder input = Signature.builder("input").input("input", RLAgent.stateInput);

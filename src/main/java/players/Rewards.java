@@ -6,11 +6,11 @@ public class Rewards {
     public TFloat32 probability;
     public float reward;
     public int index;
-    public static float gamma = (float) 0.99;
-    public TFloat32 Gstate;
+    public static float gamma = (float) 0.97;
+    public float[] Gstate;
 
 
-    public Rewards(int index, float reward, TFloat32 state){
+    public Rewards(int index, float reward, float[] state){
         this.index = index;
         this.reward = reward;
         Gstate = state;

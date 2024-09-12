@@ -168,13 +168,9 @@ public class RLAgentTrain extends Agent{
 
             for(int k = 0; k < ActionSpaceSize; k++){
                 action = outputAction(unID, gs, outputIndexes[k]);
-                if(action != null){
-                    if(!rewards.containsKey(unID))
-                        rewards.put(unID, new ArrayList<Rewards>());
-                    ArrayList<Rewards> tmp = rewards.get(unID);
-                    tmp.add(new Rewards(outputIndexes[k], (new SimpleAgent(seed)).evalAction(gs, action), mrtviTenzor));
+                if(action != null)
                     return action;
-                }//{ System.out.println(gs.getTick() + ":" +gs.getActiveTribeID()+ ":" +action); return action;}
+                //{ System.out.println(gs.getTick() + ":" +gs.getActiveTribeID()+ ":" +action); return action;}
             }
             return new EndTurn();
         }
