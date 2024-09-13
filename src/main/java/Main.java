@@ -48,6 +48,7 @@ public class Main {
                     }
 
                 }
+                if(inStates.size() == 0 || actions.size() == 0 || rew.size() == 0){ RLAgent.rewards = new HashMap<>(); continue;}
                 TFloat32 inputStates = TFloat32.tensorOf(Shape.of(inStates.size(), inStates.get(0).length), data -> {
                     for (int g = 0; g < inStates.size(); g++)
                         for(int gg = 0; gg < inStates.get(0).length; gg++)
@@ -72,7 +73,7 @@ public class Main {
                         .run();
 
                 if(i > 0 && i % 250 == 0) {
-                    Path saveFolder = Files.createDirectory(Path.of("./model-tanh-0.01-"+i));
+                    Path saveFolder = Files.createDirectory(Path.of("./model-500Turns-tanh-0.01-"+i));
                     Signature.Builder input = Signature.builder("input").input("input", RLAgent.stateInput);
                     Signature.Builder output = Signature.builder("output").output("probabilities", RLAgent.actionProbabilities);
                     SavedModelBundle.exporter(saveFolder.toString())
