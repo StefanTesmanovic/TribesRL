@@ -543,7 +543,7 @@ public class SimpleAgent extends Agent {
                                 return -10;
                             }
                         }
-                    } else if (enemy.getTribeId() == thisTribe.getTribeId()) { //za priblizavanje prijatelju
+                    } else if (enemy != null && enemy.getTribeId() == thisTribe.getTribeId()) { //za priblizavanje prijatelju
                         if (Vector2d.chebychevDistance(dest, enemy.getPosition()) < Vector2d.chebychevDistance(currentPos, enemy.getPosition())) {
                             return 10;
                         }
