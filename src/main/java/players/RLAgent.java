@@ -429,17 +429,17 @@ public class RLAgent extends Agent{
 
         weights1 = tf.variable(tf.random.truncatedNormal(tf.constant(new long[]{input, 200}), TFloat32.class));
         biases1 = tf.variable(tf.zeros(tf.constant(new long[]{200}), TFloat32.class));
-        layer1 = tf.math.tanh(tf.math.add(tf.linalg.matMul(stateInput, weights1), biases1));
+        layer1 = tf.nn.relu(tf.math.add(tf.linalg.matMul(stateInput, weights1), biases1));
 
 
         weights2 = tf.variable(tf.random.truncatedNormal(tf.constant(new long[]{200, 150}), TFloat32.class));
         biases2 = tf.variable(tf.zeros(tf.constant(new long[]{150}), TFloat32.class));
-        Operand<TFloat32> layer2 = tf.math.tanh(tf.math.add(tf.linalg.matMul(layer1, weights2), biases2));
+        Operand<TFloat32> layer2 = tf.nn.relu(tf.math.add(tf.linalg.matMul(layer1, weights2), biases2));
 
 
         weights3 = tf.variable(tf.random.truncatedNormal(tf.constant(new long[]{150, 100}), TFloat32.class));
         biases3 = tf.variable(tf.zeros(tf.constant(new long[]{100}), TFloat32.class));
-        Operand<TFloat32> layer3 = tf.math.tanh(tf.math.add(tf.linalg.matMul(layer2, weights3), biases3));
+        Operand<TFloat32> layer3 = tf.nn.relu(tf.math.add(tf.linalg.matMul(layer2, weights3), biases3));
 
 
         weights4 = tf.variable(tf.random.truncatedNormal(tf.constant(new long[]{100, numActions}), TFloat32.class));

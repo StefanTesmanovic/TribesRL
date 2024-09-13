@@ -48,7 +48,22 @@ public class Main {
                     }
 
                 }
-                if(inStates.size() == 0 || actions.size() == 0 || rew.size() == 0){ RLAgent.rewards = new HashMap<>(); continue;}
+                if(i > 0 && i % 250 == 0) {
+                    Path saveFolder = Files.createDirectory(Path.of("./model-500Turns-relu-0.01-"+i));
+                    Signature.Builder input = Signature.builder("input").input("input", RLAgent.stateInput);
+                    Signature.Builder output = Signature.builder("output").output("probabilities", RLAgent.actionProbabilities);
+                    SavedModelBundle.exporter(saveFolder.toString())
+                            .withFunctions(SessionFunction.create(input.build(), RLAgent.session), SessionFunction.create(output.build(), RLAgent.session))
+                            .withSession(RLAgent.session)//.withFunctions(SessionFunction.create(input.build(), RLAgent.session), SessionFunction.create(output.build(), RLAgent.session))
+                            .export();
+                    System.out.println(i);
+
+                }
+                if(i % 10 == 0){ System.out.println(i + "   " +(System.currentTimeMillis()-startTime)/60000); for(int sc : Game.score) System.out.println(sc);}
+                if(i>0 && i % 50 == 0)
+                    copyVariablesFromSourceToTarget();
+
+                if(inStates.size() == 0 || actions.size() == 0 || rew.size() == 0){ RLAgent.rewards = new HashMap<>();System.out.println("\nkoji kurac, kako ovo uopste da se desi?\n"); continue;}
                 TFloat32 inputStates = TFloat32.tensorOf(Shape.of(inStates.size(), inStates.get(0).length), data -> {
                     for (int g = 0; g < inStates.size(); g++)
                         for(int gg = 0; gg < inStates.get(0).length; gg++)
@@ -72,20 +87,6 @@ public class Main {
                         .addTarget(RLAgent.minimize)
                         .run();
 
-                if(i > 0 && i % 250 == 0) {
-                    Path saveFolder = Files.createDirectory(Path.of("./model-500Turns-tanh-0.01-"+i));
-                    Signature.Builder input = Signature.builder("input").input("input", RLAgent.stateInput);
-                    Signature.Builder output = Signature.builder("output").output("probabilities", RLAgent.actionProbabilities);
-                    SavedModelBundle.exporter(saveFolder.toString())
-                            .withFunctions(SessionFunction.create(input.build(), RLAgent.session), SessionFunction.create(output.build(), RLAgent.session))
-                            .withSession(RLAgent.session)//.withFunctions(SessionFunction.create(input.build(), RLAgent.session), SessionFunction.create(output.build(), RLAgent.session))
-                            .export();
-                    System.out.println(i);
-
-                }
-                if(i % 10 == 0){ System.out.println(i + "   " +(System.currentTimeMillis()-startTime)/60000); for(int sc : Game.score) System.out.println(sc);}
-                if(i>0 && i % 50 == 0)
-                    copyVariablesFromSourceToTarget();
                 RLAgent.rewards = new HashMap<>();
             }
 

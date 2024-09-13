@@ -536,12 +536,16 @@ public class SimpleAgent extends Agent {
                         inRange = checkInRange(enemy, thisUnit);
                         if (enemy.DEF < thisUnit.ATK && thisUnit.getCurrentHP() >= enemy.getCurrentHP()) { //Incentive to attack weaker enemy
                             if (Vector2d.chebychevDistance(dest, enemy.getPosition()) < Vector2d.chebychevDistance(currentPos, enemy.getPosition())) {
-                                return 3;
+                                return 10;
                             }
-                        } else { //Higher Incentive to move away from enemy if the enemy is stronger, especially if we are in range
-                            if (Vector2d.chebychevDistance(dest, enemy.getPosition()) > Vector2d.chebychevDistance(currentPos, enemy.getPosition()) && inRange) {
-                                return 4;
+                        } else { //It is bad to go towards a stronger enemy
+                            if (Vector2d.chebychevDistance(dest, enemy.getPosition()) < Vector2d.chebychevDistance(currentPos, enemy.getPosition()) || inRange) {
+                                return -10;
                             }
+                        }
+                    } else if (enemy.getTribeId() == thisTribe.getTribeId()) { //za priblizavanje prijatelju
+                        if (Vector2d.chebychevDistance(dest, enemy.getPosition()) < Vector2d.chebychevDistance(currentPos, enemy.getPosition())) {
+                            return 10;
                         }
                     }
                 }
