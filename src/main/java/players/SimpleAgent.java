@@ -130,7 +130,7 @@ public class SimpleAgent extends Agent {
         }else if (a.getActionType() ==  MAKE_VETERAN) {
             score = 5; //Making a veteran is placed as highest priority
         }else if (a.getActionType() ==  DISBAND) {
-            score = -2;
+            score = -50;
         }
 
         //CITY ACTIONS
@@ -540,7 +540,7 @@ public class SimpleAgent extends Agent {
                             }
                         } else { //It is bad to go towards a stronger enemy
                             if (Vector2d.chebychevDistance(dest, enemy.getPosition()) < Vector2d.chebychevDistance(currentPos, enemy.getPosition()) || inRange) {
-                                return -10;
+                                return -15;
                             }
                         }
                     } else if (enemy != null && enemy.getTribeId() == thisTribe.getTribeId()) { //za priblizavanje prijatelju
@@ -566,7 +566,7 @@ public class SimpleAgent extends Agent {
                 }
                 if (t == Types.TERRAIN.VILLAGE) { // High incentive to move to village to capture as it is easier than capturing an actual city
                     if (Vector2d.chebychevDistance(dest, new Vector2d(x, y)) < Vector2d.chebychevDistance(thisUnit.getPosition(), new Vector2d(x, y))) {
-                        return 50;
+                        return 30;
                     }
                 }
             }
@@ -601,7 +601,7 @@ public class SimpleAgent extends Agent {
                         return allegianceVal < 15 ? 2 : 0;
                     }
                 } else { // Less priority given to
-                    return allegianceVal < 0 ? 1 : 0;
+                    return allegianceVal < 0 ? -10 : 0;
                 }
             } else if (attacker.getCurrentHP() < defender.getCurrentHP()) {
                 if (attacker.ATK > defender.DEF) {

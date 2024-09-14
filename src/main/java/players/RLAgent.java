@@ -242,7 +242,7 @@ public class RLAgent extends Agent{
         Unit actor = (Unit) gs.getActor(unitID);
         int tribeID = actor.getTribeId();
         Vector2d position = actor.getPosition(), target;
-        Board board = gs.getBoard();
+        Board board = gs.getBoard(); gs.getTribe(tribeID).getCitiesID();
         float multiplier;
         for(int i = 0; i < TableVectors.mSize; i++){
             for(int j = 0; j < TableVectors.mSize; j++){
