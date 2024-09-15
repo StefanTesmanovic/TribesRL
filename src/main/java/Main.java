@@ -48,7 +48,7 @@ public class Main {
                     }
 
                 }
-                if(i > 0 && i % 250 == 0) {
+                if(i > 0 && i % 1000 == 0) {
                     Path saveFolder = Files.createDirectory(Path.of("./modeli/modelv3-gamma098-500Turns-relu-0.01-"+i));
                     Signature.Builder input = Signature.builder("input").input("input", RLAgent.stateInput);
                     Signature.Builder output = Signature.builder("output").output("probabilities", RLAgent.actionProbabilities);

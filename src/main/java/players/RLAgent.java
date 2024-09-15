@@ -339,8 +339,6 @@ public class RLAgent extends Agent{
                 if(u == null) continue;
                 if(u.getTribeId() != tribeID){
                     ret += dist <= 5 ? (dist <= 4 ? (dist <= 3 ? (dist <= 2 ? (dist <= 1 ? -100 : -50) : -10) : -5) : -1) : 0; // ( : <3 ternary operators <3 : )
-                }else{
-                    ret += dist <= 5 ? (dist <=3 ? 20 : 10) : 0;
                 }
             }
         }
