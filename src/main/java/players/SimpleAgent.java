@@ -561,7 +561,7 @@ public class SimpleAgent extends Agent {
                 Types.TERRAIN t = b.getTerrainAt(x, y);
                 if (c != null && c.getTribeId() != thisTribe.getTribeId()) {
                     if (Vector2d.chebychevDistance(dest, c.getPosition()) < Vector2d.chebychevDistance(thisUnit.getPosition(), c.getPosition())) {
-                        return 4;
+                        return 20;
                     }
                 }
                 if (t == Types.TERRAIN.VILLAGE) { // High incentive to move to village to capture as it is easier than capturing an actual city

@@ -6,7 +6,7 @@ public class Rewards {
     public TFloat32 probability;
     public float reward;
     public int index;
-    public static float gamma = (float) 0.97;
+    public static float gamma = (float) 0.98;
     public float[] Gstate;
 
 
