@@ -29,7 +29,7 @@ public class Main {
         if(Objects.equals(conf.getString("runMode"), "Training")){
             RLAgent.initNN();
             RLAgentTrain.initNN();
-            for(int i = 0; i < 51; i++) {
+            for(int i = 0; i < 10001; i++) {
                 Play.start();
 
                 ArrayList<float[]> inStates = new ArrayList<>();
@@ -53,14 +53,8 @@ public class Main {
                     }
 
                 }
-                if(i > 0 && i % 50 == 0) {
-                    Path saveFolder = Files.createDirectory(Path.of("./modelTest-"+i));
-                    Signature.Builder input = Signature.builder("input").input("input", RLAgent.stateInput.asOutput());
-                    Signature.Builder output = Signature.builder("output").output("probabilities", RLAgent.actionProbabilities);
-                    SavedModelBundle.exporter(saveFolder.toString())
-                            .withFunctions(SessionFunction.create(input.build(), RLAgent.session), SessionFunction.create(output.build(), RLAgent.session))
-                            .withSession(RLAgent.session)//.withFunctions(SessionFunction.create(input.build(), RLAgent.session), SessionFunction.create(output.build(), RLAgent.session))
-                            .export();
+                if(i > 0 && i % 500 == 0) {
+                    saveModel("./modeli/model-relu-500turns-gamma98-01-" + i);
                     System.out.println(i);
                 }
                 if(i % 10 == 0){ System.out.println(i + "   " +(System.currentTimeMillis()-startTime)/60000); for(int sc : Game.score) System.out.println(sc);}
@@ -95,25 +89,8 @@ public class Main {
             }
         }else if(Objects.equals(conf.getString("runMode"), "Testing")){
             RLAgent.initNN();
-            TFloat32 mrtviTenzor = TFloat32.tensorOf(Shape.of(1, 8*7), data -> {
-                for (int i = 0; i < 8*7; i++) {
-                    data.setFloat((float) 1.5, 0, i);
-                }
-            });
-            TFloat32 actionProbs = (TFloat32) RLAgent.session.runner()
-                    .feed(RLAgent.stateInput.asOutput(), mrtviTenzor)
-                    .fetch(RLAgent.actionProbabilities)
-                    .run()
-                    .get(0);
             saveModel("./ModelTest");
             loadModel("./ModelTest");
-            TFloat32 actionProbs2 = (TFloat32) RLAgent.session.runner()
-                    .feed(RLAgent.stateInput.asOutput(), mrtviTenzor)
-                    .fetch(RLAgent.actionProbabilities)
-                    .run()
-                    .get(0);
-            for(int k = 0; k < 52; k++)
-            System.out.println(actionProbs2.getFloat(0,k) == actionProbs.getFloat(0,k));
         }
     }
 
