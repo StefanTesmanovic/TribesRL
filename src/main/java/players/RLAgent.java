@@ -278,7 +278,7 @@ public class RLAgent extends Agent{
                     }else{
                         temp = TableVectors.Calculate(position, target);
                         for(int k = 0; k < 8; k++) {
-                            if(ret[k+fCity] > temp[k])
+                            if(ret[k+fCity] > temp[k])          
                                 continue;
                             ret[k + fCity] = temp[k];
                         }
