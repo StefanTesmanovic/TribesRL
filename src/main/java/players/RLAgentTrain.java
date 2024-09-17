@@ -85,7 +85,7 @@ public class RLAgentTrain extends Agent{
     @Override
     public Action act(GameState gs, ElapsedCpuTimer ect) throws IOException {
 
-        SimpleAgent temp = new SimpleAgent(seed);
+        SimpleAgentTrain temp = new SimpleAgentTrain(seed);
         //Gather all available actions:
         ArrayList<Action> allActions = gs.getAllAvailableActions();
         int nActions = allActions.size();

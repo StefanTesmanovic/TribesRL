@@ -29,7 +29,7 @@ import static core.Types.ACTION.*;
 /**
  * This is the Simple agent for the game.
  */
-public class SimpleAgent extends Agent {
+public class SimpleAgentTrain extends Agent {
 
     private Random m_rnd;
 
@@ -38,7 +38,7 @@ public class SimpleAgent extends Agent {
      *
      * @param seed - random seed for this player.
      */
-    public SimpleAgent(long seed) {
+    public SimpleAgentTrain(long seed) {
         super(seed);
         m_rnd = new Random(seed);
     }
@@ -62,6 +62,7 @@ public class SimpleAgent extends Agent {
         HashMap<Integer, ArrayList<Action>> desiredActions = new HashMap<>();
 
         for (Action a : allActions ) {
+
             int actionScore = evalAction(gs, a);
 
             ArrayList<Action> listActions;
@@ -97,8 +98,8 @@ public class SimpleAgent extends Agent {
             }
         }
 
-//        System.out.println(bestActionScore + " " + chosenAction);
-
+        System.out.println(bestActionScore + " " + chosenAction);
+        //if(chosenAction.toString().toLowerCase().contains("find")) System.out.println(chosenAction);
         return chosenAction;
     }
 
@@ -121,7 +122,7 @@ public class SimpleAgent extends Agent {
         }else if (a.getActionType() ==  RECOVER) {
             score = evalRecover(a, gs, thisTribe);
         }else if (a.getActionType() ==  CAPTURE || a.getActionType() ==  EXAMINE) {
-            score = 5; //Capturing provides only benefits
+            score = 100; //Capturing provides only benefits
         }else if (a.getActionType() ==  HEAL_OTHERS) {
             score = evalHeal(a, gs);
         }else if (a.getActionType() ==  CONVERT) {
@@ -129,7 +130,7 @@ public class SimpleAgent extends Agent {
         }else if (a.getActionType() ==  MAKE_VETERAN) {
             score = 5; //Making a veteran is placed as highest priority
         }else if (a.getActionType() ==  DISBAND) {
-            score = -2;
+            score = -50;
         }
 
         //CITY ACTIONS
@@ -334,7 +335,6 @@ public class SimpleAgent extends Agent {
         return 2;
     }
 
-
     //Evaluate a clear action
     private int evalClear(Tribe thisTribe) {
         //This is the least desirable action for a forest as it only gives a default tile
@@ -490,7 +490,7 @@ public class SimpleAgent extends Agent {
                 case KNIGHT:
                 case CATAPULT:
                     if (allegianceVal < 0) {
-                        return 5;
+                        return 20;
                     } else if(allegianceVal < 15){
                         return 2;
                     }
@@ -536,12 +536,16 @@ public class SimpleAgent extends Agent {
                         inRange = checkInRange(enemy, thisUnit);
                         if (enemy.DEF < thisUnit.ATK && thisUnit.getCurrentHP() >= enemy.getCurrentHP()) { //Incentive to attack weaker enemy
                             if (Vector2d.chebychevDistance(dest, enemy.getPosition()) < Vector2d.chebychevDistance(currentPos, enemy.getPosition())) {
-                                return 3;
+                                return 10;
                             }
-                        } else { //Higher Incentive to move away from enemy if the enemy is stronger, especially if we are in range
-                            if (Vector2d.chebychevDistance(dest, enemy.getPosition()) > Vector2d.chebychevDistance(currentPos, enemy.getPosition()) && inRange) {
-                                return 4;
+                        } else { //It is bad to go towards a stronger enemy
+                            if (Vector2d.chebychevDistance(dest, enemy.getPosition()) < Vector2d.chebychevDistance(currentPos, enemy.getPosition()) || inRange) {
+                                return -15;
                             }
+                        }
+                    } else if (enemy != null && enemy.getTribeId() == thisTribe.getTribeId()) { //za priblizavanje prijatelju
+                        if (Vector2d.chebychevDistance(dest, enemy.getPosition()) < Vector2d.chebychevDistance(currentPos, enemy.getPosition())) {
+                            return 10;
                         }
                     }
                 }
@@ -557,12 +561,12 @@ public class SimpleAgent extends Agent {
                 Types.TERRAIN t = b.getTerrainAt(x, y);
                 if (c != null && c.getTribeId() != thisTribe.getTribeId()) {
                     if (Vector2d.chebychevDistance(dest, c.getPosition()) < Vector2d.chebychevDistance(thisUnit.getPosition(), c.getPosition())) {
-                        return 4;
+                        return 20;
                     }
                 }
                 if (t == Types.TERRAIN.VILLAGE) { // High incentive to move to village to capture as it is easier than capturing an actual city
                     if (Vector2d.chebychevDistance(dest, new Vector2d(x, y)) < Vector2d.chebychevDistance(thisUnit.getPosition(), new Vector2d(x, y))) {
-                        return 5;
+                        return 30;
                     }
                 }
             }
@@ -592,12 +596,12 @@ public class SimpleAgent extends Agent {
             if (attacker.getCurrentHP() >= defender.getCurrentHP()) {
                 if (attacker.ATK > defender.DEF) {
                     if (allegianceVal < 0) {
-                        return 5;
+                        return 20;
                     } else{
                         return allegianceVal < 15 ? 2 : 0;
                     }
                 } else { // Less priority given to
-                    return allegianceVal < 0 ? 1 : 0;
+                    return allegianceVal < 0 ? -10 : 0;
                 }
             } else if (attacker.getCurrentHP() < defender.getCurrentHP()) {
                 if (attacker.ATK > defender.DEF) {
@@ -614,7 +618,7 @@ public class SimpleAgent extends Agent {
                 return 0;
             }else if(enemyInRange && !inEnemyRange) {
                 if (allegianceVal < 0) {
-                    score = 5;
+                    score = 30;
                 } else{
                     score = allegianceVal < 15 ? 2 : 0;
                 }

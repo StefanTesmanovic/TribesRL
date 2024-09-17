@@ -1,80 +1,42 @@
 package players;
 
-
-import com.google.protobuf.InvalidProtocolBufferException;
 import core.Types;
 import core.actions.Action;
 import core.actions.tribeactions.EndTurn;
 import core.actions.unitactions.*;
-import core.actions.unitactions.command.AttackCommand;
 import core.actions.unitactions.factory.UpgradeFactory;
-import core.actors.Actor;
 import core.actors.City;
 import core.actors.units.Unit;
 import core.game.Board;
 import core.game.GameState;
-import org.tensorflow.*;
-import org.tensorflow.framework.optimizers.Adam;
-import org.tensorflow.framework.optimizers.Optimizer;
-import org.tensorflow.ndarray.FloatNdArray;
-import org.tensorflow.ndarray.NdArray;
-import org.tensorflow.ndarray.NdArrays;
+import org.tensorflow.GraphOperation;
+import org.tensorflow.SavedModelBundle;
+import org.tensorflow.framework.op.sets.Sets;
 import org.tensorflow.ndarray.Shape;
-import org.tensorflow.ndarray.buffer.FloatDataBuffer;
-import org.tensorflow.op.Op;
-import org.tensorflow.op.Ops;
-import org.tensorflow.op.core.*;
-import org.tensorflow.proto.ConfigProto;
-import org.tensorflow.proto.GPUOptions;
 import org.tensorflow.types.TFloat32;
-import org.tensorflow.types.TInt32;
-import org.tensorflow.types.TString;
 import utils.ElapsedCpuTimer;
-import utils.Pair;
 import utils.Vector2d;
-
 
 import java.util.*;
 
-import static org.tensorflow.op.core.ReduceSum.keepDims;
-public class RLAgent extends Agent{
-    //public static Placeholder<TFloat32> movesCount;
-    public static Graph graph;
-    public static Ops tf;
 
-    public static Placeholder<TFloat32> stateInput;
-    public static Operand<TFloat32> logits, probabilities;
-    public static Operand<TFloat32> actionProbabilities;
+public class RLAgentPlay extends Agent {
 
-    public static Variable<TFloat32> weights1;
-    public static Variable<TFloat32> biases1;
-    public static Operand<TFloat32> layer1;
-
-    public static Variable<TFloat32> weights2;
-    public static Variable<TFloat32> biases2;
-
-    public static Variable<TFloat32> weights3;
-    public static Variable<TFloat32> biases3;
-
-    public static Variable<TFloat32> weights4;
-    public static Variable<TFloat32> biases4;
-
+    private Random rnd;
     public static int ActionSpaceSize = 52, StateSpaceSize = 8*7;
-    public static Session session;
-    public static Operand<TFloat32> copying;
-    private Random m_rnd;
-    public static Gradients gradients;
-    public static Optimizer optimizer;
-    public static Placeholder<TFloat32> actions;
-    public static Placeholder<TFloat32> rew;
-    public static Op minimize;
-
-    public static HashMap<Integer, ArrayList<Rewards>> rewards = new HashMap<>();
-
-    public RLAgent(long seed)
+    public static SavedModelBundle model;
+    public RLAgentPlay(long seed)
     {
         super(seed);
-        m_rnd = new Random(seed);
+        rnd = new Random(seed);
+        String modelPath = "./modelTest-50";//"./modeli/model-500Turns-tanh-0.01-4250"; // Replace X with your version
+        model = SavedModelBundle.load(modelPath, "serve");
+        System.out.println(model.signatures());
+        System.out.println(model.graph().operations());
+        for (Iterator<GraphOperation> it = model.graph().operations(); it.hasNext(); ) {
+            GraphOperation op = it.next();
+            System.out.println(op.name() + " : " + op.type());
+        }
     }
 
     @Override
@@ -118,7 +80,7 @@ public class RLAgent extends Agent{
             if (desiredActions.containsKey(val)) {
                 actionFound = true;
                 int n = desiredActions.get(val).size();
-                chosenAction = desiredActions.get(val).get(m_rnd.nextInt(n));
+                chosenAction = desiredActions.get(val).get(rnd.nextInt(n));
             } else {
                 val--;
             }
@@ -142,102 +104,34 @@ public class RLAgent extends Agent{
                 }
             });
             /**mrtviTenzor = tf.reshape(
-                    tf.dtypes.cast(tf.constant(input), TFloat32.class),
-                    tf.array(-1L, input.length)
-            ).asTensor();**/
-            TFloat32 actionProbs = (TFloat32) session.runner()
-                    .feed(stateInput.asOutput(), mrtviTenzor)
-                    .fetch(actionProbabilities)
+             tf.dtypes.cast(tf.constant(input), TFloat32.class),
+             tf.array(-1L, input.length)
+             ).asTensor();**/
+            TFloat32 actionProbs = (TFloat32) model.session().runner()
+                    .feed("input" ,mrtviTenzor)
+                    .fetch("probabilities")
                     .run()
                     .get(0);
             //NdArray arr = NdArrays.ofFloats(Shape.of(1,51));
             Integer[] outputIndexes = sortedArgs(actionProbs);
             /**float a = 0;
-            for(int i = 0; i < actionProbs.size(); i++) {
-                System.out.print(actionProbs.getFloat(0, i));
-                a += actionProbs.getFloat(0,i);
-            }
-            System.out.println("\n" + a);**/
+             for(int i = 0; i < actionProbs.size(); i++) {
+             System.out.print(actionProbs.getFloat(0, i));
+             a += actionProbs.getFloat(0,i);
+             }
+             System.out.println("\n" + a);**/
             //System.out.println(actionProbs.size());//actionProbs.copyTo(arr));//.getFloat(0,2));
-            int stateRew = rewardFromState(unID, gs);
-            double prob;
+
             int ind;
             for(int k = 0; k < ActionSpaceSize; k++){
-                prob = m_rnd.nextDouble();
-                if(prob > 0.75){
-                    ind = m_rnd.nextInt(k, ActionSpaceSize);
-                    action = outputAction(unID, gs, outputIndexes[ind]);
-                    if(action != null){
-                        if(!rewards.containsKey(unID))
-                            rewards.put(unID, new ArrayList<Rewards>());
-                        ArrayList<Rewards> tmp = rewards.get(unID);
-                        tmp.add(new Rewards(outputIndexes[ind], (new SimpleAgentTrain(seed)).evalAction(gs, action) + stateRew, input));
-                        return action;
-                    }else{
-                        outputIndexes[ind] = outputIndexes[k];
-                    }
-                }
                 action = outputAction(unID, gs, outputIndexes[k]);
-                if(action != null){
-                    if(!rewards.containsKey(unID))
-                        rewards.put(unID, new ArrayList<Rewards>());
-                    ArrayList<Rewards> tmp = rewards.get(unID);
-                    tmp.add(new Rewards(outputIndexes[k], (new SimpleAgentTrain(seed)).evalAction(gs, action) + stateRew, input));
+                if(action != null)
                     return action;
-                }//{ System.out.println(gs.getTick() + ":" +gs.getActiveTribeID()+ ":" +action); return action;}
             }
             return new EndTurn();
         }
         return action;
     }
-    //friendly Hp, friendly attack, enemy HP, enemy attack enemy--> HP is defence succes if attacked attack is how succesful would our attack be
-    private static float[] Input(int unitId, GameState gs){
-        int Range = 3, x, y;//7 = 3 + 1 + 3
-        float[] ret = new float[7*7*8];NdArrays.ofFloats(Shape.of(7 * 7 * 8));
-        Unit actor = (Unit) gs.getActor(unitId);
-        int tribeID = actor.getTribeId();
-        Vector2d position = actor.getPosition();
-        Board board = gs.getBoard();
-        Actor temp;
-        int friendlyAttack = 7*7, enemyHP = 7*7*2, enemyAttack = 7*7*3, friendlyCity = 7*7*4, enemyCity = 7*7*5, res = 7*7*6, terr = 7*7*7;
-
-        for(int i = 0; i < 7*7; i++){
-            x = ((int) i/7)+ position.x - Range;
-            y = i%7 + position.y - Range;
-            if((x  >= 0 && y  >= 0) && (x < board.getSize() && y < board.getSize())) {
-                temp = board.getUnitAt(x, y);
-                if (temp != null) {
-                    if (x == position.x && y == position.y) continue;
-                    if (temp.getTribeId() != tribeID) {
-                        Attack attack = new Attack(unitId);
-                        attack.setTargetId(temp.getActorId());
-                        AttackCommand ac = new AttackCommand();
-                        Pair<Integer, Integer> pair = ac.getAttackResults(attack, gs);
-                        ret[i+enemyHP] = pair.getSecond();//.setFloat((float)pair.getSecond(), i+enemyHP);
-                        ret[i+enemyAttack] = pair.getFirst();//.setFloat((float)pair.getFirst(), i+enemyAttack);
-                    } else {
-                        temp = board.getUnitAt(x, y);
-                        ret[i] = ((Unit)temp).getCurrentHP();//.setFloat((float)((Unit)temp).getCurrentHP(), i);
-                        ret[i+friendlyAttack] = ((Unit)temp).ATK;// .setFloat((float)((Unit)temp).ATK, i + friendlyAttack);
-
-                    }
-                }
-                temp = gs.getActor(board.getCityIdAt(x, y));
-
-                if(temp != null)
-                    if(temp.getTribeId() != tribeID)
-                        ret[i+enemyCity] = ((City)temp).getBound();//.setFloat((float)((City)temp).getBound(), i + enemyCity);
-                    else
-                        ret[i + friendlyCity] = ((City)temp).getBound();//.setFloat((float)((City)temp).getBound(), i + friendlyCity);
-
-                if(board.getResourceAt(x,y) == Types.RESOURCE.RUINS){ret[i+res] = 1;}//.setFloat((float)1, i + res);}
-                if(board.getTerrainAt(x,y) == Types.TERRAIN.VILLAGE){ret[i+terr] = 1;}//.setFloat((float)1, i + terr);}
-
-            }
-        }
-        return ret;
-    }
-
     private static float[] InputNew(int unitID, GameState gs){
         float[] ret = new float[StateSpaceSize], temp;
         int eDef=0, eAt = 8, fAt = 8*2, village = 8*3, ruins = 8*4, fCity = 8*5, eCity = 8*6;
@@ -280,7 +174,7 @@ public class RLAgent extends Agent{
                     }else{
                         temp = TableVectors.Calculate(position, target);
                         for(int k = 0; k < 8; k++) {
-                            if(ret[k+fCity] > temp[k])          
+                            if(ret[k+fCity] > temp[k])
                                 continue;
                             ret[k + fCity] = temp[k];
                         }
@@ -320,34 +214,6 @@ public class RLAgent extends Agent{
 
 
         return ret;
-    }
-
-    private static int rewardFromState(int unitID, GameState gs) {
-        int ret = 0;
-        Unit actor = (Unit) gs.getActor(unitID);
-        int tribeID = actor.getTribeId();
-        Board board = gs.getBoard();
-        ArrayList<Integer> cities = gs.getTribe(tribeID).getCitiesID();
-        for(Integer c : cities) {
-            City city = (City) gs.getActor(c);
-            Vector2d position =  city.getPosition();
-            for (int i = 0; i < 11*11; i++) {
-                int x = ((int) i/7)+ position.x - 5;
-                int y = i%7 + position.y - 5;
-                if(!((x  >= 0 && y  >= 0) && (x < board.getSize() && y < board.getSize()))) continue;
-                int dist = (int) Vector2d.chebychevDistance(position, new Vector2d(x, y));
-                Unit u = board.getUnitAt(x, y);
-                if(u == null) continue;
-                if(u.getTribeId() != tribeID){
-                    ret += dist <= 5 ? (dist <= 4 ? (dist <= 3 ? (dist <= 2 ? (dist <= 1 ? -100 : -50) : -10) : -5) : -1) : 0; // ( : <3 ternary operators <3 : )
-                }
-            }
-        }
-        return ret;
-    }
-
-    private double[] normaliseInput(double[] Input){
-        return new double[8];
     }
     private Action outputAction(int uId, GameState gs, int ouptutNeuron){
         if(ouptutNeuron == 49){
@@ -400,13 +266,13 @@ public class RLAgent extends Agent{
                         return null;
                     }
                 else
-                    if(thisUnit.getType() == Types.UNIT.MIND_BENDER) {
-                        HealOthers a = new HealOthers(uId);
-                        if (a.isFeasible(gs))
-                            return a;
-                        return null;
-                    }else
-                        return null;
+                if(thisUnit.getType() == Types.UNIT.MIND_BENDER) {
+                    HealOthers a = new HealOthers(uId);
+                    if (a.isFeasible(gs))
+                        return a;
+                    return null;
+                }else
+                    return null;
 
             Move a = new Move(uId);
             a.setDestination(new Vector2d(x, y));
@@ -433,61 +299,8 @@ public class RLAgent extends Agent{
 
         return indices;
     }
-
-    public static void initNN(){
-        ConfigProto.Builder configBuilder = ConfigProto.newBuilder();
-        GPUOptions.Builder gpuOptionsBuilder = GPUOptions.newBuilder();
-
-        // Set GPU memory fraction, allow growth, etc. (optional configurations)
-        gpuOptionsBuilder.setAllowGrowth(true);
-        configBuilder.setGpuOptions(gpuOptionsBuilder);
-
-        int numActions = ActionSpaceSize, input = StateSpaceSize;
-        graph = new Graph();
-        tf = Ops.create(graph);
-        // Define the input placeholder (state input)
-        // Variable to accumulate loss
-        //movesCount = tf.placeholder(TFloat32.class, Placeholder.shape(Shape.of(-1)));
-
-        stateInput = tf.placeholder(TFloat32.class, Placeholder.shape(Shape.of(-1, input)));
-        actions = tf.placeholder(TFloat32.class, Placeholder.shape(Shape.of(-1, numActions)));
-        rew = tf.placeholder(TFloat32.class, Placeholder.shape(Shape.of(-1)));
-
-        weights1 = tf.variable(tf.random.truncatedNormal(tf.constant(new long[]{input, 200}), TFloat32.class));
-        biases1 = tf.variable(tf.zeros(tf.constant(new long[]{200}), TFloat32.class));
-        layer1 = tf.nn.relu(tf.math.add(tf.linalg.matMul(stateInput, weights1), biases1));
-
-
-        weights2 = tf.variable(tf.random.truncatedNormal(tf.constant(new long[]{200, 150}), TFloat32.class));
-        biases2 = tf.variable(tf.zeros(tf.constant(new long[]{150}), TFloat32.class));
-        Operand<TFloat32> layer2 = tf.nn.relu(tf.math.add(tf.linalg.matMul(layer1, weights2), biases2));
-
-
-        weights3 = tf.variable(tf.random.truncatedNormal(tf.constant(new long[]{150, 100}), TFloat32.class));
-        biases3 = tf.variable(tf.zeros(tf.constant(new long[]{100}), TFloat32.class));
-        Operand<TFloat32> layer3 = tf.nn.relu(tf.math.add(tf.linalg.matMul(layer2, weights3), biases3));
-
-
-        weights4 = tf.variable(tf.random.truncatedNormal(tf.constant(new long[]{100, numActions}), TFloat32.class));
-        biases4 = tf.variable(tf.zeros(tf.constant(new long[]{numActions}), TFloat32.class));
-
-        logits = tf.math.add(tf.linalg.matMul(layer3, weights4), biases4);
-        //logits = tf.math.add(logits, tf.reduceMin(logits, tf.constant(1)));
-
-        actionProbabilities = tf.math.div(logits,tf.reshape(tf.reduceSum(logits, tf.array(1)), tf.array(-1, 1)));//tf.nn.softmax(logits);
-
-        Operand<TFloat32> logProbs = tf.math.log(tf.reduceSum(tf.math.mul(actionProbabilities, actions), tf.constant(1)));
-        Operand<TFloat32> loss = tf.math.neg(tf.math.mul(logProbs, rew));
-
-        Optimizer optimizer = new Adam(graph, 0.01f);//Adam.createAdamMinimize(tf, 0.001f)//.create(tf, 0.001f);
-        minimize = optimizer.minimize(loss);
-
-        session = new Session(graph, configBuilder.build());
-    }
-
     @Override
     public Agent copy() {
         return null;
     }
-
 }

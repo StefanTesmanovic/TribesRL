@@ -73,6 +73,7 @@ class Run {
         OEP,
         EMCTS,
         PORTFOLIO_MCTS,
+        RLPlay,
         TEST,
         RL,
         RLTrain
@@ -107,6 +108,7 @@ class Run {
             case "OEP": return Run.PlayerType.OEP;
             case "pMCTS": return Run.PlayerType.PORTFOLIO_MCTS;
             case "EMCTS": return Run.PlayerType.EMCTS;
+            case "RLAgentPlay": return Run.PlayerType.RLPlay;
             case "Test": return PlayerType.TEST;
             case "RLAgent" : return PlayerType.RL;
             case "RLAgentTrain" : return PlayerType.RLTrain;
@@ -150,6 +152,7 @@ class Run {
         {
             case DONOTHING: return new DoNothingAgent(agentSeed);
             case RANDOM: return new RandomAgent(agentSeed);
+            case RLPlay: return new RLAgentPlay(agentSeed);
             case TEST: return new Test(agentSeed);
             case RL: return new RLAgent(agentSeed);
             case RLTrain: return new RLAgentTrain(agentSeed);
