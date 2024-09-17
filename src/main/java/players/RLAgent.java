@@ -158,6 +158,7 @@ public class RLAgent extends Agent{
             }
             System.out.println("\n" + a);**/
             //System.out.println(actionProbs.size());//actionProbs.copyTo(arr));//.getFloat(0,2));
+            int stateRew = rewardFromState(unID, gs);
             double prob;
             int ind;
             for(int k = 0; k < ActionSpaceSize; k++){
@@ -169,7 +170,7 @@ public class RLAgent extends Agent{
                         if(!rewards.containsKey(unID))
                             rewards.put(unID, new ArrayList<Rewards>());
                         ArrayList<Rewards> tmp = rewards.get(unID);
-                        tmp.add(new Rewards(outputIndexes[ind], (new SimpleAgent(seed)).evalAction(gs, action), input));
+                        tmp.add(new Rewards(outputIndexes[ind], (new SimpleAgent(seed)).evalAction(gs, action) + stateRew, input));
                         return action;
                     }else{
                         outputIndexes[ind] = outputIndexes[k];
@@ -180,7 +181,7 @@ public class RLAgent extends Agent{
                     if(!rewards.containsKey(unID))
                         rewards.put(unID, new ArrayList<Rewards>());
                     ArrayList<Rewards> tmp = rewards.get(unID);
-                    tmp.add(new Rewards(outputIndexes[k], (new SimpleAgent(seed)).evalAction(gs, action), input));
+                    tmp.add(new Rewards(outputIndexes[k], (new SimpleAgent(seed)).evalAction(gs, action) + stateRew, input));
                     return action;
                 }//{ System.out.println(gs.getTick() + ":" +gs.getActiveTribeID()+ ":" +action); return action;}
             }
@@ -242,7 +243,7 @@ public class RLAgent extends Agent{
         Unit actor = (Unit) gs.getActor(unitID);
         int tribeID = actor.getTribeId();
         Vector2d position = actor.getPosition(), target;
-        Board board = gs.getBoard(); gs.getTribe(tribeID).getCitiesID();
+        Board board = gs.getBoard();
         float multiplier;
         for(int i = 0; i < TableVectors.mSize; i++){
             for(int j = 0; j < TableVectors.mSize; j++){
@@ -317,6 +318,30 @@ public class RLAgent extends Agent{
         }
 
 
+        return ret;
+    }
+
+    private static int rewardFromState(int unitID, GameState gs) {
+        int ret = 0;
+        Unit actor = (Unit) gs.getActor(unitID);
+        int tribeID = actor.getTribeId();
+        Board board = gs.getBoard();
+        ArrayList<Integer> cities = gs.getTribe(tribeID).getCitiesID();
+        for(Integer c : cities) {
+            City city = (City) gs.getActor(c);
+            Vector2d position =  city.getPosition();
+            for (int i = 0; i < 11*11; i++) {
+                int x = ((int) i/7)+ position.x - 5;
+                int y = i%7 + position.y - 5;
+                if(!((x  >= 0 && y  >= 0) && (x < board.getSize() && y < board.getSize()))) continue;
+                int dist = (int) Vector2d.chebychevDistance(position, new Vector2d(x, y));
+                Unit u = board.getUnitAt(x, y);
+                if(u == null) continue;
+                if(u.getTribeId() != tribeID){
+                    ret += dist <= 5 ? (dist <= 4 ? (dist <= 3 ? (dist <= 2 ? (dist <= 1 ? -100 : -50) : -10) : -5) : -1) : 0; // ( : <3 ternary operators <3 : )
+                }
+            }
+        }
         return ret;
     }
 
