@@ -53,8 +53,8 @@ public class Main {
                     }
 
                 }
-                if(i > 0 && i % 500 == 0) {
-                    saveModel("./modeli/model-relu-500turns-gamma98-01-" + i);
+                if(i % 500 == 0) {
+                    saveModel("./modeli/model-tanh-500turns-gamma98-01-" + i);
                     System.out.println(i);
                 }
                 if(i % 10 == 0){ System.out.println(i + "   " +(System.currentTimeMillis()-startTime)/60000); for(int sc : Game.score) System.out.println(sc);}
