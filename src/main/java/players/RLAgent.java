@@ -89,7 +89,7 @@ public class RLAgent extends Agent{
                 graph.close();
             initNN();
             try {
-                loadModel("./ModelTest");
+                loadModel("./modeli/model-tanh-500turns-gamma98-01-4500");
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
