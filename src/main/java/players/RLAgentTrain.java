@@ -331,7 +331,7 @@ public class RLAgentTrain extends Agent{
             Board board = gs.getBoard();
             Unit thisUnit = (Unit)gs.getActor(uId);
             int uX = (gs.getActor(uId)).getPosition().x, uY = (gs.getActor(uId)).getPosition().y;
-            int x = ouptutNeuron/7+uX-3, y = ouptutNeuron%7+uX-3;
+            int x = ouptutNeuron/7+uX-3, y = ouptutNeuron%7+uY-3;
             if(x < 0 || y < 0 || x >= gs.getBoard().getSize() || y >= gs.getBoard().getSize()) return null;
             if(board.getResourceAt(x,y) == Types.RESOURCE.RUINS && (new Examine(uId)).isFeasible(gs)) return new Examine(uId);
             if(board.getTerrainAt(x,y) == Types.TERRAIN.VILLAGE){
@@ -416,17 +416,17 @@ public class RLAgentTrain extends Agent{
         // First hidden layer: input -> 200 neurons
         weights1 = tf.variable(tf.random.truncatedNormal(tf.constant(new long[]{input, 200}), TFloat32.class));
         biases1 = tf.variable(tf.zeros(tf.constant(new long[]{200}), TFloat32.class));
-        Operand<TFloat32> layer1 = tf.nn.relu(tf.math.add(tf.linalg.matMul(stateInput, weights1), biases1));
+        Operand<TFloat32> layer1 = tf.math.tanh(tf.math.add(tf.linalg.matMul(stateInput, weights1), biases1));
 
         // Second hidden layer: 300 -> 150 neurons
         weights2 = tf.variable(tf.random.truncatedNormal(tf.constant(new long[]{200, 150}), TFloat32.class));
         biases2 = tf.variable(tf.zeros(tf.constant(new long[]{150}), TFloat32.class));
-        Operand<TFloat32> layer2 = tf.nn.relu(tf.math.add(tf.linalg.matMul(layer1, weights2), biases2));
+        Operand<TFloat32> layer2 = tf.math.tanh(tf.math.add(tf.linalg.matMul(layer1, weights2), biases2));
 
         // Third hidden layer: 150 -> 100 neurons
         weights3 = tf.variable(tf.random.truncatedNormal(tf.constant(new long[]{150, 100}), TFloat32.class));
         biases3 = tf.variable(tf.zeros(tf.constant(new long[]{100}), TFloat32.class));
-        Operand<TFloat32> layer3 = tf.nn.relu(tf.math.add(tf.linalg.matMul(layer2, weights3), biases3));
+        Operand<TFloat32> layer3 = tf.math.tanh(tf.math.add(tf.linalg.matMul(layer2, weights3), biases3));
 
         // Output layer: 100 -> Number of actions
         weights4 = tf.variable(tf.random.truncatedNormal(tf.constant(new long[]{100, numActions}), TFloat32.class));
