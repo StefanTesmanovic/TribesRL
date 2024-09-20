@@ -87,10 +87,15 @@ public class Main {
 
                 RLAgent.rewards = new HashMap<>();
             }
-        }else if(Objects.equals(conf.getString("runMode"), "Testing")){
+        }
+        else if(Objects.equals(conf.getString("runMode"), "Testing")){
             RLAgent.initNN();
-            saveModel("./ModelTest");
             loadModel("./ModelTest");
+            for(int i = 1; i <= 100; i ++){
+                Play.start();
+                System.out.println(RLAgent.training);
+                if(i % 10 == 0){ System.out.println(i + "   " +(System.currentTimeMillis()-startTime)/60000); for(int sc : Game.score) System.out.println(sc);}
+            }
         }
     }
 

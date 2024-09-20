@@ -13,6 +13,7 @@ import core.actors.City;
 import core.actors.units.Unit;
 import core.game.Board;
 import core.game.GameState;
+import org.json.JSONObject;
 import org.tensorflow.*;
 import org.tensorflow.framework.optimizers.Adam;
 import org.tensorflow.framework.optimizers.Optimizer;
@@ -32,14 +33,18 @@ import org.tensorflow.types.TString;
 import utils.ElapsedCpuTimer;
 import utils.Pair;
 import utils.Vector2d;
+import utils.file.IO;
 
 
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
 import java.util.*;
 
 import static org.tensorflow.op.core.ReduceSum.keepDims;
 public class RLAgent extends Agent{
     //public static Placeholder<TFloat32> movesCount;
-    public static Graph graph;
+    public static Graph graph = null;
     public static Ops tf;
 
     public static Placeholder<TFloat32> stateInput;
@@ -60,7 +65,7 @@ public class RLAgent extends Agent{
     public static Variable<TFloat32> biases4;
 
     public static int ActionSpaceSize = 52, StateSpaceSize = 8*7;
-    public static Session session;
+    public static Session session = null;
     public static Operand<TFloat32> copying;
     private Random m_rnd;
     public static Gradients gradients;
@@ -68,13 +73,27 @@ public class RLAgent extends Agent{
     public static Placeholder<TFloat32> actions;
     public static Placeholder<TFloat32> rew;
     public static Op minimize;
-
+    public static boolean training = false;
     public static HashMap<Integer, ArrayList<Rewards>> rewards = new HashMap<>();
 
     public RLAgent(long seed)
     {
         super(seed);
         m_rnd = new Random(seed);
+        JSONObject conf = new IO().readJSON("training.json");
+        if(Objects.equals(conf.getString("runMode"), "Training")) training = true;
+        if(Objects.equals(conf.getString("runMode"), "Testing")){
+            if(session != null)
+                session.close();
+            if(graph != null)
+                graph.close();
+            initNN();
+            try {
+                loadModel("./ModelTest");
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
     }
 
     @Override
@@ -164,7 +183,7 @@ public class RLAgent extends Agent{
             int ind;
             for(int k = 0; k < ActionSpaceSize; k++){
                 prob = m_rnd.nextDouble();
-                if(prob > 0.75){
+                if(training && prob > 0.75){
                     ind = m_rnd.nextInt(k, ActionSpaceSize);
                     action = outputAction(unID, gs, outputIndexes[ind]);
                     if(action != null){
@@ -369,7 +388,7 @@ public class RLAgent extends Agent{
             Board board = gs.getBoard();
             Unit thisUnit = (Unit)gs.getActor(uId);
             int uX = (gs.getActor(uId)).getPosition().x, uY = (gs.getActor(uId)).getPosition().y;
-            int x = ouptutNeuron/7+uX-3, y = ouptutNeuron%7+uX-3;
+            int x = ouptutNeuron/7+uX-3, y = ouptutNeuron%7+uY-3;
             if(x < 0 || y < 0 || x >= gs.getBoard().getSize() || y >= gs.getBoard().getSize()) return null;
             if(board.getResourceAt(x,y) == Types.RESOURCE.RUINS && (new Examine(uId)).isFeasible(gs)) return new Examine(uId);
             if(board.getTerrainAt(x,y) == Types.TERRAIN.VILLAGE){
@@ -489,5 +508,178 @@ public class RLAgent extends Agent{
     public Agent copy() {
         return null;
     }
+    public static void loadModel(String filePath) throws IOException {
+
+        float[][] weights1 = new float[8*7][200];
+        float[] biases1 = new float[200];
+        float[][] weights2 = new float[200][150];
+        float[] biases2 = new float[150];
+        float[][] weights3 = new float[150][100];
+        float[] biases3 = new float[100];
+        float[][] weights4 = new float[100][52];
+        float[] biases4 = new float[52];
+
+        BufferedReader reader = new BufferedReader(new FileReader(filePath));
+        String line;
+
+        // Skip "weights1:" line
+        line = reader.readLine();
+        // Load weights1
+        for (int i = 0; i < 8*7; i++) {
+            line = reader.readLine();
+            String[] values = line.split(" ");
+            for (int j = 0; j < 200; j++) {
+                weights1[i][j] = Float.parseFloat(values[j]);
+            }
+        }
+
+        // Skip "biases1:" line
+        line = reader.readLine();
+        // Load biases1
+        line = reader.readLine();
+        String[] values = line.split(" ");
+        for (int i = 0; i < 200; i++) {
+            biases1[i] = Float.parseFloat(values[i]);
+        }
+
+        // Skip "weights2:" line
+        line = reader.readLine();
+        // Load weights2
+        for (int i = 0; i < 200; i++) {
+            line = reader.readLine();
+            values = line.split(" ");
+            for (int j = 0; j < 150; j++) {
+                weights2[i][j] = Float.parseFloat(values[j]);
+            }
+        }
+
+        // Skip "biases2:" line
+        line = reader.readLine();
+        // Load biases2
+        line = reader.readLine();
+        values = line.split(" ");
+        for (int i = 0; i < 150; i++) {
+            biases2[i] = Float.parseFloat(values[i]);
+        }
+
+        // Skip "weights3:" line
+        line = reader.readLine();
+        // Load weights3
+        for (int i = 0; i < 150; i++) {
+            line = reader.readLine();
+            values = line.split(" ");
+            for (int j = 0; j < 100; j++) {
+                weights3[i][j] = Float.parseFloat(values[j]);
+            }
+        }
+
+        // Skip "biases3:" line
+        line = reader.readLine();
+        // Load biases3
+        line = reader.readLine();
+        values = line.split(" ");
+        for (int i = 0; i < 100; i++) {
+            biases3[i] = Float.parseFloat(values[i]);
+        }
+
+        // Skip "weights4:" line
+        line = reader.readLine();
+        // Load weights4
+        for (int i = 0; i < 100; i++) {
+            line = reader.readLine();
+            values = line.split(" ");
+            for (int j = 0; j < 52; j++) {
+                weights4[i][j] = Float.parseFloat(values[j]);
+            }
+        }
+
+        // Skip "biases4:" line
+        line = reader.readLine();
+        // Load biases4
+        line = reader.readLine();
+        values = line.split(" ");
+        for (int i = 0; i < 52; i++) {
+            biases4[i] = Float.parseFloat(values[i]);
+        }
+
+        reader.close();
+        TFloat32 mrtviTenzor;
+        mrtviTenzor = TFloat32.tensorOf(Shape.of(8*7, 200), data -> {
+            for (int i = 0; i < 8*7; i++)
+                for (int j = 0; j < 200; j++)
+                    data.setFloat(weights1[i][j], i, j);
+        });
+        RLAgent.copying = RLAgent.tf.assign(RLAgent.weights1, RLAgent.tf.constant(mrtviTenzor));
+        RLAgent.session.runner()
+                .addTarget(RLAgent.copying)
+                .run();
+
+        mrtviTenzor = TFloat32.tensorOf(Shape.of(200), data -> {
+            for (int i = 0; i < 200; i++)
+                data.setFloat(biases1[i], i);
+        });
+        RLAgent.copying = RLAgent.tf.assign(RLAgent.biases1, RLAgent.tf.constant(mrtviTenzor));
+        RLAgent.session.runner()
+                .addTarget(RLAgent.copying)
+                .run();
+
+        mrtviTenzor = TFloat32.tensorOf(Shape.of(200, 150), data -> {
+            for (int i = 0; i < 200; i++)
+                for (int j = 0; j < 150; j++)
+                    data.setFloat(weights2[i][j], i, j);
+        });
+        RLAgent.copying = RLAgent.tf.assign(RLAgent.weights2, RLAgent.tf.constant(mrtviTenzor));
+        RLAgent.session.runner()
+                .addTarget(RLAgent.copying)
+                .run();
+
+        mrtviTenzor = TFloat32.tensorOf(Shape.of(150), data -> {
+            for (int i = 0; i < 150; i++)
+                data.setFloat(biases2[i], i);
+        });
+        RLAgent.copying = RLAgent.tf.assign(RLAgent.biases2, RLAgent.tf.constant(mrtviTenzor));
+        RLAgent.session.runner()
+                .addTarget(RLAgent.copying)
+                .run();
+
+        mrtviTenzor = TFloat32.tensorOf(Shape.of(150, 100), data -> {
+            for (int i = 0; i < 150; i++)
+                for (int j = 0; j < 100; j++)
+                    data.setFloat(weights3[i][j], i, j);
+        });
+        RLAgent.copying = RLAgent.tf.assign(RLAgent.weights3, RLAgent.tf.constant(mrtviTenzor));
+        RLAgent.session.runner()
+                .addTarget(RLAgent.copying)
+                .run();
+
+        mrtviTenzor = TFloat32.tensorOf(Shape.of(100), data -> {
+            for (int i = 0; i < 100; i++)
+                data.setFloat(biases3[i], i);
+        });
+        RLAgent.copying = RLAgent.tf.assign(RLAgent.biases3, RLAgent.tf.constant(mrtviTenzor));
+        RLAgent.session.runner()
+                .addTarget(RLAgent.copying)
+                .run();
+
+        mrtviTenzor = TFloat32.tensorOf(Shape.of(100, 52), data -> {
+            for (int i = 0; i < 100; i++)
+                for (int j = 0; j < 52; j++)
+                    data.setFloat(weights4[i][j], i, j);
+        });
+        RLAgent.copying = RLAgent.tf.assign(RLAgent.weights4, RLAgent.tf.constant(mrtviTenzor));
+        RLAgent.session.runner()
+                .addTarget(RLAgent.copying)
+                .run();
+
+        mrtviTenzor = TFloat32.tensorOf(Shape.of(52), data -> {
+            for (int i = 0; i < 52; i++)
+                data.setFloat(biases4[i], i);
+        });
+        RLAgent.copying = RLAgent.tf.assign(RLAgent.biases4, RLAgent.tf.constant(mrtviTenzor));
+        RLAgent.session.runner()
+                .addTarget(RLAgent.copying)
+                .run();
+    }
+
 
 }
