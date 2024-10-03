@@ -1,11 +1,11 @@
 {
   "Game Mode" : "Capitals",
-  "Repetitions" : 20,
+  "Repetitions" : 4,
   "Rollouts" : false,
   "Search Depth" : 20,
   "Force End" : false,
   "Population Size" : 1,
-  "Players" : ["OSLA", "RLAgent"],
+  "Players" : ["RHEA", "RLAgent"],
   "Tribes" : ["Xin Xi", "Imperius"],
   "Shift Tribes" : true,
   "Verbose" : false,

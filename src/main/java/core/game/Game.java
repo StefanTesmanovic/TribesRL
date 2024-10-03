@@ -15,6 +15,7 @@ import utils.stats.AIStats;
 import utils.stats.GameplayStats;
 
 import java.awt.*;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.*;
 
@@ -50,6 +51,7 @@ public class Game {
     // Gameplay stats for each player.
     private GameplayStats[] gpStats;
 
+    private static String filePath = "./scoreGain.txt"; //score gain filePath
     /**
      * Constructor of the game
      */
@@ -261,6 +263,15 @@ public class Game {
             if (!gameOver) {
                 tick(frame);
             } else {
+                Tribe[] tribes = gs.getTribes();
+                try (FileWriter writer = new FileWriter(filePath, true)) {
+                    for (int i = 0; i < numPlayers; i++) {
+                        writer.write(tribes[i].getScore() + " ");
+                    }
+                    writer.write("\n");
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
                 frame.update(getGameState(-1), null);
             }
         }
@@ -299,6 +310,14 @@ public class Game {
                 paused = true;
                 frame.setPauseAfterTurn(false);
             }
+        }
+        try (FileWriter writer = new FileWriter(filePath, true)) {
+            for (int i = 0; i < numPlayers; i++) {
+                writer.write(tribes[i].getScore() + " ");
+            }
+            writer.write("\n");
+        } catch (IOException e) {
+            e.printStackTrace();
         }
 
         // Check if game should be paused automatically after this tick

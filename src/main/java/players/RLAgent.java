@@ -73,7 +73,7 @@ public class RLAgent extends Agent{
     public static Placeholder<TFloat32> actions;
     public static Placeholder<TFloat32> rew;
     public static Op minimize;
-    public static boolean training = false;
+    public static boolean  training = false;
     public static HashMap<Integer, ArrayList<Rewards>> rewards = new HashMap<>();
 
     public RLAgent(long seed)
@@ -89,7 +89,7 @@ public class RLAgent extends Agent{
                 graph.close();
             initNN();
             try {
-                loadModel("./modeli/model-tanh-500turns-gamma98-01-4500");
+                loadModel("./modeli/model-relu-500turns-gamma98-01-10000");
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
@@ -104,7 +104,7 @@ public class RLAgent extends Agent{
         int nActions = allActions.size();
         //Initially pick a random action so that at least that can be returned
         //Action bestAction = allActions.get(m_rnd.nextInt(nActions));
-        int bestActionScore = -1; //evalAction(gs,bestAction);
+        int bestActionScore = 0; //evalAction(gs,bestAction);
 
         HashMap<Integer, ArrayList<Action>> desiredActions = new HashMap<>();
         HashSet<Integer> units = new HashSet<Integer>();
@@ -133,7 +133,7 @@ public class RLAgent extends Agent{
         Action chosenAction = null;
         boolean actionFound = false;
         int val = bestActionScore;
-        while (!actionFound && val >= -1) {
+        while (!actionFound && val >= 0) {
             if (desiredActions.containsKey(val)) {
                 actionFound = true;
                 int n = desiredActions.get(val).size();
@@ -474,17 +474,17 @@ public class RLAgent extends Agent{
 
         weights1 = tf.variable(tf.random.truncatedNormal(tf.constant(new long[]{input, 200}), TFloat32.class));
         biases1 = tf.variable(tf.zeros(tf.constant(new long[]{200}), TFloat32.class));
-        layer1 = tf.math.tanh(tf.math.add(tf.linalg.matMul(stateInput, weights1), biases1));
+        layer1 = tf.nn.relu(tf.math.add(tf.linalg.matMul(stateInput, weights1), biases1));
 
 
         weights2 = tf.variable(tf.random.truncatedNormal(tf.constant(new long[]{200, 150}), TFloat32.class));
         biases2 = tf.variable(tf.zeros(tf.constant(new long[]{150}), TFloat32.class));
-        Operand<TFloat32> layer2 = tf.math.tanh(tf.math.add(tf.linalg.matMul(layer1, weights2), biases2));
+        Operand<TFloat32> layer2 = tf.nn.relu(tf.math.add(tf.linalg.matMul(layer1, weights2), biases2));
 
 
         weights3 = tf.variable(tf.random.truncatedNormal(tf.constant(new long[]{150, 100}), TFloat32.class));
         biases3 = tf.variable(tf.zeros(tf.constant(new long[]{100}), TFloat32.class));
-        Operand<TFloat32> layer3 = tf.math.tanh(tf.math.add(tf.linalg.matMul(layer2, weights3), biases3));
+        Operand<TFloat32> layer3 = tf.nn.relu(tf.math.add(tf.linalg.matMul(layer2, weights3), biases3));
 
 
         weights4 = tf.variable(tf.random.truncatedNormal(tf.constant(new long[]{100, numActions}), TFloat32.class));

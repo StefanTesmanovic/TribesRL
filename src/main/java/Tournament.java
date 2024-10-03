@@ -26,6 +26,8 @@ import utils.mapelites.Feature;
 import utils.stats.GameplayStats;
 import utils.stats.MultiStatSummary;
 
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.*;
 
 import static core.Types.GAME_MODE.*;
@@ -35,7 +37,7 @@ import static core.Types.TRIBE.*;
  * Entry point of the framework.
  */
 public class Tournament {
-
+    private static String filePath = "./scoreGain.txt";
     public static void main(String[] args) {
         //Some defaults:
         Types.GAME_MODE gameMode = CAPITALS; //SCORE;
@@ -164,7 +166,7 @@ public class Tournament {
                 levelSeed = System.currentTimeMillis() + new Random().nextInt();
             }
             System.out.println("**** Playing level with seed " + levelSeed + " ****");
-
+            String outputString = "";
             for (int rep = 0; rep < repetitions; rep++) {
 
                 HashMap<Types.TRIBE, Participant> assignment = new HashMap<>();
@@ -173,10 +175,12 @@ public class Tournament {
 
                 int playersIn = 0;
                 System.out.print("Playing with [");
+                outputString += "[";
                 while(playersIn < participants.size())
                 {
                     Participant p = participants.get(next);
                     System.out.print(p.participantId + ":" + p.playerType + "(" + tribes[playersIn] + ")");
+                    outputString += p.participantId + ":" + p.playerType + "(" + tribes[playersIn] + ")";
                     players[playersIn] = p.playerType;
                     assignment.put(tribes[playersIn], p);
 
@@ -187,10 +191,16 @@ public class Tournament {
                         System.out.print(", ");
                 }
                 System.out.println("] (" + (nseed*repetitions + rep + 1) + "/" + (seeds.length*repetitions) + ")");
+                outputString += "]\n";
 
                 Game game = _prepareGame(tribes, levelSeed, players, gameMode);
 
                 try {
+                    try (FileWriter writer = new FileWriter(filePath, true)) {
+                        writer.write(outputString);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
                     Run.runGame(game);
 
                     _addGameResults(game, assignment);
