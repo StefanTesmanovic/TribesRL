@@ -28,7 +28,9 @@ public class Main {
         JSONObject conf = new IO().readJSON("training.json");
         if(Objects.equals(conf.getString("runMode"), "Training")){
             RLAgent.initNN();
+            loadModel("./modeli/model-relu-500turns-gamma98-01-32500");
             RLAgentTrain.initNN();
+            copyVariablesFromSourceToTarget();
             for(int i = 0; i < 10001; i++) {
                 Play.start();
 
@@ -53,11 +55,11 @@ public class Main {
                     }
 
                 }
-                if(i % 500 == 0) {
-                    saveModel("./modeli/model-tanh-500turns-gamma98-01-" + i);
+                if(i > 0 && i % 500 == 0) {
+                    saveModel("./modeli/model-relu-500turns-gamma98-01-" + (i+32500));
                     System.out.println(i);
                 }
-                if(i % 10 == 0){ System.out.println(i + "   " +(System.currentTimeMillis()-startTime)/60000); for(int sc : Game.score) System.out.println(sc);}
+                if(i % 10 == 0){ System.out.println(i + "   " +(System.currentTimeMillis()-startTime)/60000);}
                 if(i>0 && i % 50 == 0)
                     copyVariablesFromSourceToTarget();
 
@@ -88,15 +90,7 @@ public class Main {
                 RLAgent.rewards = new HashMap<>();
             }
         }
-        else if(Objects.equals(conf.getString("runMode"), "Testing")){
-            RLAgent.initNN();
-            loadModel("./ModelTest");
-            for(int i = 1; i <= 100; i ++){
-                Play.start();
-                System.out.println(RLAgent.training);
-                if(i % 10 == 0){ System.out.println(i + "   " +(System.currentTimeMillis()-startTime)/60000); for(int sc : Game.score) System.out.println(sc);}
-            }
-        }
+
     }
 
     private static void copyVariablesFromSourceToTarget() {

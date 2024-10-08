@@ -91,7 +91,7 @@ public class RLAgentTrain extends Agent{
         int nActions = allActions.size();
         //Initially pick a random action so that at least that can be returned
         //Action bestAction = allActions.get(m_rnd.nextInt(nActions));
-        int bestActionScore = -1; //evalAction(gs,bestAction);
+        int bestActionScore = 0; //evalAction(gs,bestAction);
 
         HashMap<Integer, ArrayList<Action>> desiredActions = new HashMap<>();
         HashSet<Integer> units = new HashSet<Integer>();
@@ -120,7 +120,7 @@ public class RLAgentTrain extends Agent{
         Action chosenAction = null;
         boolean actionFound = false;
         int val = bestActionScore;
-        while (!actionFound && val >= -1) {
+        while (!actionFound && val >= 0) {
             if (desiredActions.containsKey(val)) {
                 actionFound = true;
                 int n = desiredActions.get(val).size();
@@ -129,7 +129,7 @@ public class RLAgentTrain extends Agent{
                 val--;
             }
         }
-        if (chosenAction.getActionType() != Types.ACTION.END_TURN)
+        if (chosenAction != null && chosenAction.getActionType() != Types.ACTION.END_TURN)
             return chosenAction;
         for (Action a : allActions) {
             if (!(a instanceof UnitAction)) continue;

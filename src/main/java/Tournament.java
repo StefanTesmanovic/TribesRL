@@ -37,7 +37,7 @@ import static core.Types.TRIBE.*;
  * Entry point of the framework.
  */
 public class Tournament {
-    private static String filePath = "./scoreGain.txt";
+    private static String filePath = "./scoreGainRHEA-250turns-8repetitions.txt";
     public static void main(String[] args) {
         //Some defaults:
         Types.GAME_MODE gameMode = CAPITALS; //SCORE;
@@ -166,9 +166,8 @@ public class Tournament {
                 levelSeed = System.currentTimeMillis() + new Random().nextInt();
             }
             System.out.println("**** Playing level with seed " + levelSeed + " ****");
-            String outputString = "";
             for (int rep = 0; rep < repetitions; rep++) {
-
+                String outputString = "";
                 HashMap<Types.TRIBE, Participant> assignment = new HashMap<>();
                 int next = starter;
                 Run.PlayerType[] players = new Run.PlayerType[participants.size()];

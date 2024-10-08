@@ -479,7 +479,8 @@ public class Game {
             System.out.print(" #" + rank + ": Tribe " + tribes[tribeId].getType() + " (" + agentName + "): " + results[tribeId] + ", " + sc[tribeId] + " points;");
             System.out.println(" #tech: " + tr.getNumTechsResearched() + ", #cities: " + tr.getNumCities() + ", production: " + tr.getProduction());
             System.out.println("Diplomacy - #wars: " + tribes[tribeId].getnWarsDeclared() + ", #stars sent: " + tribes[tribeId].getnStarsSent());
-            score[tribeId]+= rank == 1 ? rank:0;
+            score[tribeId]+= (rank == 1 ? rank:0);
+
             rank++;
         }
     }

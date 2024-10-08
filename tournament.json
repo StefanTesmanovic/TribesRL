@@ -1,6 +1,6 @@
 {
   "Game Mode" : "Capitals",
-  "Repetitions" : 4,
+  "Repetitions" : 8,
   "Rollouts" : false,
   "Search Depth" : 20,
   "Force End" : false,

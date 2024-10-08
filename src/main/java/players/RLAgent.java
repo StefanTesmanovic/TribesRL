@@ -89,7 +89,7 @@ public class RLAgent extends Agent{
                 graph.close();
             initNN();
             try {
-                loadModel("./modeli/model-relu-500turns-gamma98-01-10000");
+                loadModel("./modeli/model-relu-500turns-gamma98-01-32500");
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
@@ -104,7 +104,7 @@ public class RLAgent extends Agent{
         int nActions = allActions.size();
         //Initially pick a random action so that at least that can be returned
         //Action bestAction = allActions.get(m_rnd.nextInt(nActions));
-        int bestActionScore = 0; //evalAction(gs,bestAction);
+        int bestActionScore =0; //evalAction(gs,bestAction);
 
         HashMap<Integer, ArrayList<Action>> desiredActions = new HashMap<>();
         HashSet<Integer> units = new HashSet<Integer>();
@@ -142,7 +142,7 @@ public class RLAgent extends Agent{
                 val--;
             }
         }
-        if (chosenAction.getActionType() != Types.ACTION.END_TURN)
+        if (chosenAction != null && chosenAction.getActionType() != Types.ACTION.END_TURN)
             return chosenAction;
         for (Action a : allActions) {
             if (!(a instanceof UnitAction)) continue;
